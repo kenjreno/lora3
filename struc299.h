@@ -19,6 +19,8 @@
 #ifndef _STRUC299_H
 #define _STRUC299_H
 
+#pragma pack(1)
+
 /////////////////////////////////////////////////////////////////////////
 // Global definitions                                                  //
 /////////////////////////////////////////////////////////////////////////
@@ -768,6 +770,9 @@ typedef struct {
    ULONG  DownloadSpeed;            // Minimum speed at which download is possible
    CHAR   FreeSpace[64];            // Space for future extensions
 } LIMITS;
+
+
+#pragma pack()
 
 #endif
 
