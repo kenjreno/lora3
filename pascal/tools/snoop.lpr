@@ -44,32 +44,32 @@ begin
 
   Pipe := TPipe.Create;
   try
-    if Pipe.ConnectServer(ParamStr(1), ParamStr(2)) then
+    if Pipe.ConnectServer(PChar(ParamStr(1)), PChar(ParamStr(2))) <> 0 then
     begin
-      Pipe.Time := 0;
+      Pipe.Time_ := 0;
       Stdio := TScreen.Create;
       try
         Stdio.Initialize;
-        while Stdio.Carrier and Pipe.Carrier do
+        while (Stdio.Carrier <> 0) and (Pipe.Carrier <> 0) do
         begin
-          if Stdio.BytesReady then
+          if Stdio.BytesReady <> 0 then
           begin
             Readed := Stdio.ReadBytes(@Temp[0], SizeOf(Temp));
             Pipe.SendBytes(@Temp[0], Readed);
           end;
-          if Pipe.BytesReady then
+          if Pipe.BytesReady <> 0 then
           begin
             Readed := Pipe.ReadBytes(@Temp[0], SizeOf(Temp));
             Stdio.SendBytes(@Temp[0], Readed);
           end;
-          if Pipe.Time <> 0 then
+          if Pipe.Time_ <> 0 then
           begin
-            Stdio.SetName(Pipe.Name);
-            Stdio.SetCity(Pipe.City);
-            Stdio.SetLevel(Pipe.Level);
+            Stdio.SetName(Pipe.PipeName);
+            Stdio.SetCity(Pipe.PipeCity);
+            Stdio.SetLevel(Pipe.PipeLevel);
             Stdio.SetTimeLeft(Pipe.TimeLeft);
-            Stdio.SetTime(Pipe.Time);
-            Pipe.Time := 0;
+            Stdio.SetTime(Pipe.Time_);
+            Pipe.Time_ := 0;
           end;
         end;
       finally

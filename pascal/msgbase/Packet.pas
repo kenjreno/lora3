@@ -497,7 +497,7 @@ begin
       DecodeDate(NowDT, yr, mo, dy);
       DecodeTime(NowDT, hr, mn, sc, ms);
 
-      FPkt2.Version := 2;
+      FPkt2.Version_ := 2;
       FPkt2.CWValidation := $0100;
       FPkt2.Capability := $0001;
       FPkt2.ProductL := $4E;
@@ -532,7 +532,7 @@ begin
     begin
       { Read existing packet header }
       fpStream.Read(FPkt2, SizeOf(PKT2HDR));
-      if FPkt2.Version = 2 then
+      if FPkt2.Version_ = 2 then
       begin
         if FPkt2.Rate = 2 then
         begin
