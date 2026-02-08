@@ -10,7 +10,7 @@
   FreePascal conversion of struc299.h
 }
 
-unit LoraStruc;
+unit Struc;
 
 {$MODE OBJFPC}
 {$H+}
@@ -19,7 +19,7 @@ unit LoraStruc;
 interface
 
 uses
-  LoraDefs;
+  Defs;
 
 const
   VERSION_       = '2.99.70';

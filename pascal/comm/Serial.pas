@@ -21,7 +21,7 @@
   DOS uses FOSSIL driver via INT 14h.
 }
 
-unit LoraSerial;
+unit Serial;
 
 {$MODE OBJFPC}
 {$H+}
@@ -35,7 +35,7 @@ uses
   {$ELSE}
   synaser,
   {$ENDIF}
-  LoraDefs, LoraComBase;
+  Defs, ComBase;
 
 {$IFDEF MSDOS}
 const

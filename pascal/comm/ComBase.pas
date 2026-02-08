@@ -19,7 +19,7 @@
   FreePascal conversion of combase.h - TCom abstract base class
 }
 
-unit LoraComBase;
+unit ComBase;
 
 {$MODE OBJFPC}
 {$H+}
@@ -27,7 +27,7 @@ unit LoraComBase;
 interface
 
 uses
-  LoraDefs;
+  Defs;
 
 const
   RSIZE = 2048;

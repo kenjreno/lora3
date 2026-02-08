@@ -24,7 +24,7 @@
     - DOS:     Not supported (single-tasking OS, no IPC needed)
 }
 
-unit LoraNpipe;
+unit Npipe;
 
 {$MODE OBJFPC}
 {$H+}
@@ -43,7 +43,7 @@ uses
   {$IFDEF UNIX}
   BaseUnix, Sockets, Unix,
   {$ENDIF}
-  LoraDefs, LoraComBase;
+  Defs, ComBase;
 
 {$IFDEF UNIX}
 const

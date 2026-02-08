@@ -22,7 +22,7 @@
   Call TcpipAvailable to check at runtime before creating TTcpip objects.
 }
 
-unit LoraTcpip;
+unit Tcpip;
 
 {$MODE OBJFPC}
 {$H+}
@@ -36,7 +36,7 @@ uses
   {$ELSE}
   blcksock, synsock, synautil,
   {$ENDIF}
-  LoraDefs, LoraComBase;
+  Defs, ComBase;
 
 { Returns True if TCP/IP networking is available on this system.
   - Windows/Linux/OS2: Always True (OS provides TCP/IP stack)

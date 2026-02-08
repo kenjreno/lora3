@@ -19,7 +19,7 @@
   FreePascal conversion of stdio.cpp - TStdio class
 }
 
-unit LoraStdio;
+unit Stdio;
 
 {$MODE OBJFPC}
 {$H+}
@@ -28,7 +28,7 @@ interface
 
 uses
   SysUtils, BaseUnix, Unix, Termio,
-  LoraDefs, LoraComBase;
+  Defs, ComBase;
 
 type
   TStdio = class(TCom)

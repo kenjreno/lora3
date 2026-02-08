@@ -23,7 +23,7 @@
   Mats Wallin. ALL RIGHTS RESERVED.
 }
 
-unit LoraJam;
+unit Jam;
 
 {$MODE OBJFPC}
 {$H+}
@@ -32,7 +32,7 @@ unit LoraJam;
 interface
 
 uses
-  LoraDefs;
+  Defs;
 
 { -------------------------------------------------------------------------- }
 { File extensions                                                            }

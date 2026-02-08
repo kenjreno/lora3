@@ -20,7 +20,7 @@
   Replaces CXL windowing with direct ANSI terminal output.
 }
 
-unit LoraScreen;
+unit Screen;
 
 {$MODE OBJFPC}
 {$H+}
@@ -29,7 +29,7 @@ interface
 
 uses
   SysUtils, BaseUnix,
-  LoraDefs, LoraComBase;
+  Defs, ComBase;
 
 type
   TScreen = class(TCom)

@@ -19,7 +19,7 @@
   FreePascal conversion of _ldefs.h
 }
 
-unit LoraDefs;
+unit Defs;
 
 {$MODE OBJFPC}
 {$H+}

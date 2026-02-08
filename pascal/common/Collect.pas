@@ -19,7 +19,7 @@
   FreePascal conversion of collect.h / collect.cpp
 }
 
-unit LoraCollect;
+unit Collect;
 
 {$MODE OBJFPC}
 {$H+}
@@ -27,7 +27,7 @@ unit LoraCollect;
 interface
 
 uses
-  LoraDefs;
+  Defs;
 
 type
   PLDATA = ^LDATA;
