@@ -14,8 +14,4 @@ library comm;
 uses
   ComBase, Serial, Tcpip, Stdio, Screen, Npipe;
 
-exports
-  { Library marker - actual functionality accessed via unit interfaces }
-  ;
-
 end.

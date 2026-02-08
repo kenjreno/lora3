@@ -581,7 +581,7 @@ function TNodes.ReadNodelist(lpAddress: TAddress): Word;
 var
   fsIdx, fsText: TFileStream;
   idxHead: IDXHEADER;
-  nodeIdx: NODEIDX;
+  NIdx: NODEIDX;
   Num: LongWord;
   BasePath, FName, Line: String;
   First_: Boolean;
@@ -602,10 +602,10 @@ begin
       begin
         for Num := 0 to idxHead.Entry - 1 do
         begin
-          if fsIdx.Read(nodeIdx, SizeOf(NODEIDX)) <> SizeOf(NODEIDX) then
+          if fsIdx.Read(NIdx, SizeOf(NODEIDX)) <> SizeOf(NODEIDX) then
             Break;
-          if (nodeIdx.Zone = lpAddress.Zone) and (nodeIdx.Net = lpAddress.Net) and
-             ((nodeIdx.Node = 0) or (nodeIdx.Node = lpAddress.Node)) then
+          if (NIdx.Zone = lpAddress.Zone) and (NIdx.Net = lpAddress.Net) and
+             ((NIdx.Node = 0) or (NIdx.Node = lpAddress.Node)) then
           begin
             { Build path to nodelist text file }
             BasePath := ExtractFilePath(DataFile);

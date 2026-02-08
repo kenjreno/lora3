@@ -16,8 +16,4 @@ uses
   Menu, Events, Packer, Misc, Language, Config, Nodes, FileData,
   Outbound, MsgData, User, FileBase;
 
-exports
-  { Library marker - actual functionality accessed via unit interfaces }
-  ;
-
 end.

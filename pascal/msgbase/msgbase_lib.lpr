@@ -17,8 +17,4 @@ uses
   MsgBase, Passthr, Dupes, FidoSdm, Adept, JamMsg, Hudson,
   Packet, Squish, InetMail, Usenet;
 
-exports
-  { Library marker - actual functionality accessed via unit interfaces }
-  ;
-
 end.
