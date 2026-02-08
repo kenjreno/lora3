@@ -75,7 +75,7 @@ end;
 procedure TOkFile.Add;
 var
   DoClose: Boolean;
-  ok: OKFILE;
+  ok: Struc299.OKFILE;
 begin
   DoClose := False;
 
@@ -123,7 +123,7 @@ end;
 
 function TOkFile.Next: Word;
 var
-  ok: OKFILE;
+  ok: Struc299.OKFILE;
 begin
   Result := 0;
 
@@ -146,7 +146,7 @@ end;
 function TOkFile.Read(pszName: PChar): Word;
 var
   DoClose: Boolean;
-  ok: OKFILE;
+  ok: Struc299.OKFILE;
 begin
   Result := 0;
   DoClose := False;
@@ -183,7 +183,7 @@ end;
 
 procedure TOkFile.Update;
 var
-  ok: OKFILE;
+  ok: Struc299.OKFILE;
 begin
   if fdDat <> nil then
   begin

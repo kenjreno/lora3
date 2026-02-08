@@ -34,7 +34,7 @@ uses
   {$IFDEF MSDOS}
   Dos,
   {$ELSE}
-  blcksock, synsock, synautil,
+  Sockets, blcksock, synsock, synautil,
   {$ENDIF}
   Defs, ComBase;
 
