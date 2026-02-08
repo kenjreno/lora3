@@ -41,17 +41,17 @@ var
 begin
   WriteLn(' * Export to FILES.BBS');
 
-  Data := TFileData.Create;
+  Data := TFileData.Create(PChar(String(Cfg.SystemPath)));
   try
-    if Data.Open(Cfg.SystemPath) and Data.First then
+    if (Data.First <> 0) then
     repeat
       Total := 0;
-      Write(Format(' +-- %-15s %-45s ', [Data.Key, Data.Display]));
+      Write(Format(' +-- %-15s %-45s ', [StrPas(Data.Key), StrPas(Data.Display)]));
       F := TFileBase.Create;
       try
-        if F.Open(Cfg.SystemPath, Data.Key) then
+        if F.Open(StrPas(Cfg.SystemPath), StrPas(Data.Key)) then
         begin
-          Path := Data.Download + 'files.bbs';
+          Path := StrPas(Data.Download) + 'files.bbs';
           AssignFile(fp, Path);
           try
             Rewrite(fp);
@@ -81,7 +81,7 @@ begin
         F.Free;
       end;
       WriteLn(Format('Total: %5u', [Total]));
-    until not Data.Next;
+    until Data.Next = 0;
   finally
     Data.Free;
   end;
@@ -105,18 +105,18 @@ begin
   SysUtils.DeleteFile('filebase.dat');
   SysUtils.DeleteFile('filebase.idx');
 
-  Data := TFileData.Create;
+  Data := TFileData.Create(PChar(String(Cfg.SystemPath)));
   try
-    if Data.Open(Cfg.SystemPath) and Data.First then
+    if (Data.First <> 0) then
     repeat
       PendingWrite := False;
       Total := 0;
-      Write(Format(' +-- %-15s %-45s ', [Data.Key, Data.Display]));
+      Write(Format(' +-- %-15s %-45s ', [StrPas(Data.Key), StrPas(Data.Display)]));
       F := TFileBase.Create;
       try
-        if F.Open(Cfg.SystemPath, Data.Key) then
+        if F.Open(StrPas(Cfg.SystemPath), StrPas(Data.Key)) then
         begin
-          Path := Data.Download + 'files.bbs';
+          Path := StrPas(Data.Download) + 'files.bbs';
           AssignFile(fp, Path);
           {$I-}
           Reset(fp);
@@ -165,26 +165,26 @@ begin
                   if p^ <> #0 then
                     F.Description.Add(p);
                 end;
-                Path := Data.Download + NameStr;
+                Path := StrPas(Data.Download) + NameStr;
                 {$IFDEF UNIX}
                 Path := LowerCase(Path);
                 {$ENDIF}
                 if FindFirst(Path, faAnyFile, SR) = 0 then
                 begin
-                  F.Area := Data.Key;
+                  F.Area := StrPas(Data.Key);
                   F.Name := NameStr;
-                  F.Complete := Data.Download + NameStr;
-                  F.Size_ := SR.Size;
+                  F.Complete := StrPas(Data.Download) + NameStr;
+                  F.Size := SR.Size;
                   FileAge_ := FileDateToDateTime(SR.Time);
                   DecodeDate(FileAge_, yr, mo, dy);
                   DecodeTime(FileAge_, hr, mn, sc, ms);
-                  F.UplDate.Day := dy; F.Date_.Day := dy;
-                  F.UplDate.Month := mo; F.Date_.Month := mo;
-                  F.UplDate.Year := yr; F.Date_.Year := yr;
-                  F.UplDate.Hour := hr; F.Date_.Hour := hr;
-                  F.UplDate.Minute := mn; F.Date_.Minute := mn;
+                  F.UplDate.Day := dy; F.Date.Day := dy;
+                  F.UplDate.Month := mo; F.Date.Month := mo;
+                  F.UplDate.Year := yr; F.Date.Year := yr;
+                  F.UplDate.Hour := hr; F.Date.Hour := hr;
+                  F.UplDate.Minute := mn; F.Date.Minute := mn;
                   F.Uploader := 'Sysop';
-                  F.CdRom := Data.CdRom;
+                  F.CdRom := Byte(Data.CdRom) <> 0;
                   PendingWrite := True;
                   FindClose(SR);
                 end
@@ -219,7 +219,7 @@ begin
         F.Free;
       end;
       WriteLn(Format('Total: %5u', [Total]));
-    until not Data.Next;
+    until Data.Next = 0;
   finally
     Data.Free;
   end;
@@ -235,16 +235,16 @@ begin
   WriteLn(' * Purging Files');
   Today := DateTimeToUnix(Now) div 86400;
 
-  Data := TFileData.Create;
+  Data := TFileData.Create(PChar(String(Cfg.SystemPath)));
   try
-    if Data.Open(Cfg.SystemPath) and Data.First then
+    if (Data.First <> 0) then
     repeat
       Deleted := 0;
       Total := 0;
-      Write(Format(' +-- %-15s %-29s ', [Data.Key, Data.Display]));
+      Write(Format(' +-- %-15s %-29s ', [StrPas(Data.Key), StrPas(Data.Display)]));
       F := TFileBase.Create;
       try
-        if F.Open(Cfg.SystemPath, Data.Key) then
+        if F.Open(StrPas(Cfg.SystemPath), StrPas(Data.Key)) then
         begin
           if F.First then
           repeat
@@ -265,7 +265,7 @@ begin
         F.Free;
       end;
       WriteLn(Format('Total: %5u, Deleted: %5u', [Total, Deleted]));
-    until not Data.Next;
+    until Data.Next = 0;
   finally
     Data.Free;
   end;
@@ -279,7 +279,7 @@ begin
 
   F := TFileBase.Create;
   try
-    if F.Open(Cfg.SystemPath, '') then
+    if F.Open(StrPas(Cfg.SystemPath), '') then
     begin
       F.Pack;
       F.Close;
@@ -304,21 +304,21 @@ begin
   {$I+}
   if IOResult <> 0 then Exit;
 
-  Data := TFileData.Create;
+  Data := TFileData.Create(PChar(String(Cfg.SystemPath)));
   try
-    if Data.Open(Cfg.SystemPath) and Data.First then
+    if (Data.First <> 0) then
     repeat
-      Write(Format(' +-- %-15s %-29s ', [Data.Key, Data.Display]));
+      Write(Format(' +-- %-15s %-29s ', [StrPas(Data.Key), StrPas(Data.Display)]));
       F := TFileBase.Create;
       try
-        if F.Open(Cfg.SystemPath, Data.Key) then
+        if F.Open(StrPas(Cfg.SystemPath), StrPas(Data.Key)) then
         begin
           F.SortByName;
           if F.First then
           begin
             WriteLn(fp);
-            WriteLn(fp, Format('Library: %s', [Data.Key]));
-            WriteLn(fp, Format('Description: %s', [Data.Display]));
+            WriteLn(fp, Format('Library: %s', [StrPas(Data.Key)]));
+            WriteLn(fp, Format('Description: %s', [StrPas(Data.Display)]));
             WriteLn(fp, Format('There are %u files available for download', [Data.ActiveFiles]));
             WriteLn(fp);
             WriteLn(fp, 'File Name    Size  Date  Description');
@@ -327,10 +327,10 @@ begin
               p := PChar(F.Description.First);
               if p = nil then
                 WriteLn(fp, Format('%-12s %4uK %02d/%02d',
-                  [F.Name, (F.Size_ + 1023) div 1024, F.UplDate.Month, F.UplDate.Year mod 100]))
+                  [F.Name, (F.Size + 1023) div 1024, F.UplDate.Month, F.UplDate.Year mod 100]))
               else
                 WriteLn(fp, Format('%-12s %4uK %02d/%02d %.53s',
-                  [F.Name, (F.Size_ + 1023) div 1024, F.UplDate.Month, F.UplDate.Year mod 100, StrPas(p)]));
+                  [F.Name, (F.Size + 1023) div 1024, F.UplDate.Month, F.UplDate.Year mod 100, StrPas(p)]));
               p := PChar(F.Description.Next);
               while p <> nil do
               begin
@@ -344,7 +344,7 @@ begin
       finally
         F.Free;
       end;
-    until not Data.Next;
+    until Data.Next = 0;
   finally
     Data.Free;
   end;
@@ -411,7 +411,9 @@ begin
 
     Cfg := TConfig.Create;
     try
-      if not Cfg.Load(ConfigFile) then
+      if ConfigFile <> '' then
+        Cfg.Load(PChar(ConfigFile))
+      else
         Cfg.Default;
 
       if DoImport then ImportFilesBBS;

@@ -31,8 +31,8 @@ type
   TPacket = class(TMsgBase)
   private
     fpStream: TFileStream;
-    pkt2Hdr: PKT2HDR;
-    pkt22Hdr: PKT22HDR;
+    FPkt2: PKT2HDR;
+    FPkt22: PKT22HDR;
     msgHdr: PKTMSGHDR;
     LastRead: Char;
     Line: array[0..255] of Char;
@@ -488,39 +488,39 @@ begin
     if fpStream.Size = 0 then
     begin
       { Create new packet }
-      FillChar(pkt2Hdr, SizeOf(PKT2HDR), 0);
+      FillChar(FPkt2, SizeOf(PKT2HDR), 0);
 
       NowDT := Now;
       DecodeDate(NowDT, yr, mo, dy);
       DecodeTime(NowDT, hr, mn, sc, ms);
 
-      pkt2Hdr.Version := 2;
-      pkt2Hdr.CWValidation := $0100;
-      pkt2Hdr.Capability := $0001;
-      pkt2Hdr.ProductL := $4E;
+      FPkt2.Version := 2;
+      FPkt2.CWValidation := $0100;
+      FPkt2.Capability := $0001;
+      FPkt2.ProductL := $4E;
 
-      pkt2Hdr.Day := dy;
-      pkt2Hdr.Month := mo - 1;
-      pkt2Hdr.Year := yr;
-      pkt2Hdr.Hour := hr;
-      pkt2Hdr.Minute := mn;
-      pkt2Hdr.Second := sc;
+      FPkt2.Day := dy;
+      FPkt2.Month := mo - 1;
+      FPkt2.Year := yr;
+      FPkt2.Hour := hr;
+      FPkt2.Minute := mn;
+      FPkt2.Second := sc;
 
-      ParseAddress(ToAddress, pkt2Hdr.DestZone2, pkt2Hdr.DestNet, pkt2Hdr.DestNode, pkt2Hdr.DestPoint);
-      pkt2Hdr.DestZone := pkt2Hdr.DestZone2;
+      ParseAddress(ToAddress, FPkt2.DestZone2, FPkt2.DestNet, FPkt2.DestNode, FPkt2.DestPoint);
+      FPkt2.DestZone := FPkt2.DestZone2;
 
-      ParseAddress(FromAddress, pkt2Hdr.OrigZone2, pkt2Hdr.OrigNet, pkt2Hdr.OrigNode, pkt2Hdr.OrigPoint);
-      pkt2Hdr.OrigZone := pkt2Hdr.OrigZone2;
+      ParseAddress(FromAddress, FPkt2.OrigZone2, FPkt2.OrigNet, FPkt2.OrigNode, FPkt2.OrigPoint);
+      FPkt2.OrigZone := FPkt2.OrigZone2;
 
-      Move(Password, pkt2Hdr.Password, 8);
-      fpStream.Write(pkt2Hdr, SizeOf(PKT2HDR));
+      Move(Password, FPkt2.Password, 8);
+      fpStream.Write(FPkt2, SizeOf(PKT2HDR));
 
       { Write initial terminator (2 bytes of zero = empty MSGHDR.Version) }
       FillChar(msgHdr, SizeOf(PKTMSGHDR), 0);
       fpStream.Write(msgHdr, 2);
 
-      StrPCopy(FromAddress, Format('%d:%d/%d.%d', [pkt2Hdr.OrigZone, pkt2Hdr.OrigNet, pkt2Hdr.OrigNode, pkt2Hdr.OrigPoint]));
-      StrPCopy(ToAddress, Format('%d:%d/%d.%d', [pkt2Hdr.DestZone, pkt2Hdr.DestNet, pkt2Hdr.DestNode, pkt2Hdr.DestPoint]));
+      StrPCopy(FromAddress, Format('%d:%d/%d.%d', [FPkt2.OrigZone, FPkt2.OrigNet, FPkt2.OrigNode, FPkt2.OrigPoint]));
+      StrPCopy(ToAddress, Format('%d:%d/%d.%d', [FPkt2.DestZone, FPkt2.DestNet, FPkt2.DestNode, FPkt2.DestPoint]));
 
       fpStream.Position := fpStream.Size - SizeOf(PKTMSGHDR);
       Result := True;
@@ -528,23 +528,23 @@ begin
     else
     begin
       { Read existing packet header }
-      fpStream.Read(pkt2Hdr, SizeOf(PKT2HDR));
-      if pkt2Hdr.Version = 2 then
+      fpStream.Read(FPkt2, SizeOf(PKT2HDR));
+      if FPkt2.Version = 2 then
       begin
-        if pkt2Hdr.Rate = 2 then
+        if FPkt2.Rate = 2 then
         begin
           { Type 2.2 packet }
-          Move(pkt2Hdr, pkt22Hdr, SizeOf(PKT22HDR));
-          StrPCopy(FromAddress, Format('%d:%d/%d.%d', [pkt22Hdr.OrigZone, pkt22Hdr.OrigNet, pkt22Hdr.OrigNode, pkt22Hdr.OrigPoint]));
-          if pkt22Hdr.OrigDomain[0] <> #0 then
+          Move(FPkt2, FPkt22, SizeOf(PKT22HDR));
+          StrPCopy(FromAddress, Format('%d:%d/%d.%d', [FPkt22.OrigZone, FPkt22.OrigNet, FPkt22.OrigNode, FPkt22.OrigPoint]));
+          if FPkt22.OrigDomain[0] <> #0 then
           begin
-            s := StrPas(FromAddress) + '@' + StrPas(pkt22Hdr.OrigDomain);
+            s := StrPas(FromAddress) + '@' + StrPas(FPkt22.OrigDomain);
             StrPCopy(FromAddress, s);
           end;
-          StrPCopy(ToAddress, Format('%d:%d/%d.%d', [pkt22Hdr.DestZone, pkt22Hdr.DestNet, pkt22Hdr.DestNode, pkt22Hdr.DestPoint]));
-          if pkt22Hdr.DestDomain[0] <> #0 then
+          StrPCopy(ToAddress, Format('%d:%d/%d.%d', [FPkt22.DestZone, FPkt22.DestNet, FPkt22.DestNode, FPkt22.DestPoint]));
+          if FPkt22.DestDomain[0] <> #0 then
           begin
-            s := StrPas(ToAddress) + '@' + StrPas(pkt22Hdr.DestDomain);
+            s := StrPas(ToAddress) + '@' + StrPas(FPkt22.DestDomain);
             StrPCopy(ToAddress, s);
           end;
           Result := True;
@@ -552,20 +552,20 @@ begin
         else
         begin
           { Type 2+ packet - check capability word }
-          i := Swap(pkt2Hdr.CWValidation);
-          pkt2Hdr.CWValidation := i;
-          if (pkt2Hdr.Capability <> pkt2Hdr.CWValidation) or ((pkt2Hdr.Capability and $0001) = 0) then
+          i := Swap(FPkt2.CWValidation);
+          FPkt2.CWValidation := i;
+          if (FPkt2.Capability <> FPkt2.CWValidation) or ((FPkt2.Capability and $0001) = 0) then
           begin
-            StrPCopy(FromAddress, Format('%d:%d/%d.%d', [pkt2Hdr.OrigZone, pkt2Hdr.OrigNet, pkt2Hdr.OrigNode, 0]));
-            StrPCopy(ToAddress, Format('%d:%d/%d.%d', [pkt2Hdr.DestZone, pkt2Hdr.DestNet, pkt2Hdr.DestNode, 0]));
+            StrPCopy(FromAddress, Format('%d:%d/%d.%d', [FPkt2.OrigZone, FPkt2.OrigNet, FPkt2.OrigNode, 0]));
+            StrPCopy(ToAddress, Format('%d:%d/%d.%d', [FPkt2.DestZone, FPkt2.DestNet, FPkt2.DestNode, 0]));
           end
           else
           begin
-            StrPCopy(FromAddress, Format('%d:%d/%d.%d', [pkt2Hdr.OrigZone, pkt2Hdr.OrigNet, pkt2Hdr.OrigNode, pkt2Hdr.OrigPoint]));
-            StrPCopy(ToAddress, Format('%d:%d/%d.%d', [pkt2Hdr.DestZone, pkt2Hdr.DestNet, pkt2Hdr.DestNode, pkt2Hdr.DestPoint]));
+            StrPCopy(FromAddress, Format('%d:%d/%d.%d', [FPkt2.OrigZone, FPkt2.OrigNet, FPkt2.OrigNode, FPkt2.OrigPoint]));
+            StrPCopy(ToAddress, Format('%d:%d/%d.%d', [FPkt2.DestZone, FPkt2.DestNet, FPkt2.DestNode, FPkt2.DestPoint]));
           end;
-          Move(pkt2Hdr.Password, Password, SizeOf(pkt2Hdr.Password));
-          Password[SizeOf(pkt2Hdr.Password)] := #0;
+          Move(FPkt2.Password, Password, SizeOf(FPkt2.Password));
+          Password[SizeOf(FPkt2.Password)] := #0;
           Result := True;
         end;
       end;
@@ -574,12 +574,12 @@ begin
 
   if Result then
   begin
-    Date_.Day := pkt2Hdr.Day;
-    Date_.Month := pkt2Hdr.Month + 1;
-    Date_.Year := pkt2Hdr.Year;
-    Date_.Hour := pkt2Hdr.Hour;
-    Date_.Minute := pkt2Hdr.Minute;
-    Date_.Second := pkt2Hdr.Second;
+    Date_.Day := FPkt2.Day;
+    Date_.Month := FPkt2.Month + 1;
+    Date_.Year := FPkt2.Year;
+    Date_.Hour := FPkt2.Hour;
+    Date_.Minute := FPkt2.Minute;
+    Date_.Second := FPkt2.Second;
   end;
 
   { Scan messages if requested }
@@ -679,15 +679,15 @@ begin
   begin
     Result := True;
 
-    if (pkt2Hdr.Capability <> pkt2Hdr.CWValidation) or ((pkt2Hdr.Capability and $0001) = 0) then
+    if (FPkt2.Capability <> FPkt2.CWValidation) or ((FPkt2.Capability and $0001) = 0) then
     begin
-      StrPCopy(FromAddress, Format('%d:%d/%d.%d', [pkt2Hdr.OrigZone, msgHdr.OrigNet, msgHdr.OrigNode, 0]));
-      StrPCopy(ToAddress, Format('%d:%d/%d.%d', [pkt2Hdr.DestZone, msgHdr.DestNet, msgHdr.DestNode, 0]));
+      StrPCopy(FromAddress, Format('%d:%d/%d.%d', [FPkt2.OrigZone, msgHdr.OrigNet, msgHdr.OrigNode, 0]));
+      StrPCopy(ToAddress, Format('%d:%d/%d.%d', [FPkt2.DestZone, msgHdr.DestNet, msgHdr.DestNode, 0]));
     end
     else
     begin
-      StrPCopy(FromAddress, Format('%d:%d/%d.%d', [pkt2Hdr.OrigZone, msgHdr.OrigNet, msgHdr.OrigNode, pkt2Hdr.OrigPoint]));
-      StrPCopy(ToAddress, Format('%d:%d/%d.%d', [pkt2Hdr.DestZone, msgHdr.DestNet, msgHdr.DestNode, pkt2Hdr.DestPoint]));
+      StrPCopy(FromAddress, Format('%d:%d/%d.%d', [FPkt2.OrigZone, msgHdr.OrigNet, msgHdr.OrigNode, FPkt2.OrigPoint]));
+      StrPCopy(ToAddress, Format('%d:%d/%d.%d', [FPkt2.DestZone, msgHdr.DestNet, msgHdr.DestNode, FPkt2.DestPoint]));
     end;
 
     { Read date line }
@@ -803,8 +803,8 @@ begin
   pLine := @szLine[0];
   nCol := 0;
 
-  f1 := pkt2Hdr.OrigZone; f2 := msgHdr.OrigNet; f3 := msgHdr.OrigNode; f4 := pkt2Hdr.OrigPoint;
-  t1 := pkt2Hdr.DestZone; t2 := msgHdr.DestNet; t3 := msgHdr.DestNode; t4 := pkt2Hdr.DestPoint;
+  f1 := FPkt2.OrigZone; f2 := msgHdr.OrigNet; f3 := msgHdr.OrigNode; f4 := FPkt2.OrigPoint;
+  t1 := FPkt2.DestZone; t2 := msgHdr.DestNet; t3 := msgHdr.DestNode; t4 := FPkt2.DestPoint;
 
   StrPCopy(FromAddress, Format('%d:%d/%d.%d', [f1, f2, f3, f4]));
   StrPCopy(ToAddress, Format('%d:%d/%d.%d', [t1, t2, t3, t4]));
