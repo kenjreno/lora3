@@ -16,7 +16,7 @@ unit FileBase;
 interface
 
 uses
-  SysUtils, Classes, Defs, Collect, Struc299;
+  SysUtils, Classes, DateUtils, Math, Defs, Collect, Struc299;
 
 type
   TFBDATE = record

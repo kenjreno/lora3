@@ -240,7 +240,7 @@ function THudson.AddText(var MsgText: TCollection): Boolean;
 var
   fs: TFileStream;
   MsgToIdx: HMSGTOIDX;
-  HMsgIdx: HMSGIDX;
+  MIdx: HMSGIDX;
   pAddr: string;
   p: Integer;
   pszText: PChar;
@@ -307,16 +307,16 @@ begin
   end;
 
   { Write msgidx.bbs }
-  FillChar(HMsgIdx, SizeOf(HMSGIDX), 0);
-  HMsgIdx.MsgNum := FMsgHdr.MsgNum;
-  HMsgIdx.Board := FMsgHdr.Board;
+  FillChar(MIdx, SizeOf(HMSGIDX), 0);
+  MIdx.MsgNum := FMsgHdr.MsgNum;
+  MIdx.Board := FMsgHdr.Board;
   if not FLocked then
   begin
     try
       fs := OpenOrCreateFile(FBaseName + 'msgidx.bbs');
       try
         fs.Position := fs.Size;
-        fs.Write(HMsgIdx, SizeOf(HMSGIDX));
+        fs.Write(MIdx, SizeOf(HMSGIDX));
       finally
         fs.Free;
       end;
@@ -327,8 +327,8 @@ begin
   begin
     if FMsgInfo.TotalMsgs <= Length(FMsgIdx) then
       SetLength(FMsgIdx, Length(FMsgIdx) + 5000);
-    FMsgIdx[FMsgInfo.TotalMsgs - 1].MsgNum := HMsgIdx.MsgNum;
-    FMsgIdx[FMsgInfo.TotalMsgs - 1].Board := HMsgIdx.Board;
+    FMsgIdx[FMsgInfo.TotalMsgs - 1].MsgNum := MIdx.MsgNum;
+    FMsgIdx[FMsgInfo.TotalMsgs - 1].Board := MIdx.Board;
   end;
 
   { Write msgtxt.bbs - Hudson 256-byte block format }
