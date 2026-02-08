@@ -15,7 +15,7 @@ unit Address;
 interface
 
 uses
-  SysUtils, Classes, Defs, Struc, Collect;
+  SysUtils, Classes, Defs, Struc299, Collect;
 
 type
   TAddress = class

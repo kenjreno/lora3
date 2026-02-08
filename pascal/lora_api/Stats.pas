@@ -10,12 +10,11 @@ unit Stats;
 
 {$MODE OBJFPC}
 {$H+}
-{$PACKRECORDS 1}
 
 interface
 
 uses
-  SysUtils, Classes, Defs;
+  SysUtils, Classes, Defs, Struc299;
 
 const
   STAT_OFFLINE    = 0;
@@ -23,26 +22,6 @@ const
   STAT_USER       = 2;
   STAT_MAILER     = 3;
   STAT_FAXRECEIVE = 4;
-
-type
-  SYSSTAT = packed record
-    LastCaller: array[0..47] of Char;
-    TodayCalls: LongWord;
-    Calls:      LongWord;
-    MailCalls:  LongWord;
-  end;
-
-  LINESTAT = packed record
-    Number:     Word;
-    Status:     Word;
-    User:       array[0..47] of Char;
-    From_:      array[0..47] of Char;
-    Action:     array[0..47] of Char;
-    LastCaller: array[0..47] of Char;
-    TodayCalls: LongWord;
-    Calls:      LongWord;
-    MailCalls:  LongWord;
-  end;
 
 type
   TStatistics = class

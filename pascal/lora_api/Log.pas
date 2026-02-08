@@ -14,7 +14,7 @@ unit Log;
 interface
 
 uses
-  SysUtils, Defs;
+  SysUtils;
 
 type
   TLog = class
@@ -34,10 +34,7 @@ type
   protected
     fp:       Text;
     fpOpen:   Boolean;
-    Months:   array[0..11] of String[3];
-    FileName: array[0..127] of Char;
-    Buffer:   array[0..511] of Char;
-    Temp:     array[0..511] of Char;
+    FileName: String;
   end;
 
 implementation
@@ -47,19 +44,7 @@ begin
   inherited Create;
   fpOpen := False;
   Display := 0;
-
-  Months[0]  := 'Jan';
-  Months[1]  := 'Feb';
-  Months[2]  := 'Mar';
-  Months[3]  := 'Apr';
-  Months[4]  := 'May';
-  Months[5]  := 'Jun';
-  Months[6]  := 'Jul';
-  Months[7]  := 'Aug';
-  Months[8]  := 'Sep';
-  Months[9]  := 'Oct';
-  Months[10] := 'Nov';
-  Months[11] := 'Dec';
+  FileName := '';
 end;
 
 destructor TLog.Destroy;
@@ -82,8 +67,8 @@ begin
     fpOpen := False;
   end;
 
-  StrCopy(FileName, pszName);
-  Assign(fp, StrPas(FileName));
+  FileName := StrPas(pszName);
+  Assign(fp, FileName);
   {$I-}
   Append(fp);
   {$I+}
@@ -113,7 +98,7 @@ procedure TLog.Resume;
 begin
   if not fpOpen then
   begin
-    Assign(fp, StrPas(FileName));
+    Assign(fp, FileName);
     {$I-}
     Append(fp);
     {$I+}
@@ -132,23 +117,15 @@ end;
 
 procedure TLog.Write(pszFormat: PChar; const Args: array of const);
 var
-  Now: TDateTime;
-  Day, Month, Year, Hour, Min, Sec, MSec: Word;
-  LogLine: String;
-  MsgText: String;
+  MsgText, LogLine: String;
 begin
   MsgText := Format(StrPas(pszFormat), Args);
 
-  Now := SysUtils.Now;
-  DecodeDate(Now, Year, Month, Day);
-  DecodeTime(Now, Hour, Min, Sec, MSec);
-
-  { Format: <first char> DD Mon HH:MM:SS LORA <rest of message>
+  { Format: <level char> DD Mon HH:MM:SS LORA <rest of message>
     First character of message is the log level indicator }
   if Length(MsgText) > 0 then
-    LogLine := Format('%s %02d %s %02d:%02d:%02d %s %s',
-      [MsgText[1], Day, Months[Month - 1], Hour, Min, Sec, 'LORA',
-       Copy(MsgText, 2, Length(MsgText) - 1)])
+    LogLine := MsgText[1] + FormatDateTime(' dd mmm hh:nn:ss ', Now) +
+               'LORA ' + Copy(MsgText, 2, MaxInt)
   else
     LogLine := '';
 

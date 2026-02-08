@@ -10,7 +10,7 @@
   FreePascal conversion of struc299.h
 }
 
-unit Struc;
+unit Struc299;
 
 {$MODE OBJFPC}
 {$H+}
@@ -697,6 +697,57 @@ type
     RatioStart:     Word;
     DownloadSpeed:  LongWord;
     FreeSpace:      array[0..63] of Char;
+  end;
+
+  { System statistics (stats.dat header) }
+  PSYSSTAT = ^SYSSTAT;
+  SYSSTAT = packed record
+    LastCaller: array[0..47] of Char;
+    TodayCalls: LongWord;
+    Calls:      LongWord;
+    MailCalls:  LongWord;
+  end;
+
+  { Per-line statistics (stats.dat entries) }
+  PLINESTAT = ^LINESTAT;
+  LINESTAT = packed record
+    Number:     Word;
+    Status:     Word;
+    User:       array[0..47] of Char;
+    From_:      array[0..47] of Char;
+    Action:     array[0..47] of Char;
+    LastCaller: array[0..47] of Char;
+    TodayCalls: LongWord;
+    Calls:      LongWord;
+    MailCalls:  LongWord;
+  end;
+
+  { Menu file header (.MNU files) }
+  PMENUHEADER = ^MENUHEADER;
+  MENUHEADER = packed record
+    Size:     Word;
+    MenuName: array[0..31] of Char;
+    Items:    Word;
+    Color:    Byte;
+    Hilight:  Byte;
+    Prompt:   array[0..127] of Char;
+  end;
+
+  { Menu item entry (.MNU files) }
+  PMENUITEM = ^MENUITEM;
+  MENUITEM = packed record
+    Size:        Word;
+    Display:     array[0..127] of Char;
+    Color:       Byte;
+    Hilight:     Byte;
+    Key:         array[0..15] of Char;
+    Command:     Word;
+    Argument:    array[0..127] of Char;
+    Level:       Word;
+    AccessFlags: LongWord;
+    DenyFlags:   LongWord;
+    Automatic:   Byte;
+    FirstTime:   Byte;
   end;
 
 implementation

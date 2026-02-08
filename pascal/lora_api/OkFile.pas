@@ -14,7 +14,7 @@ unit OkFile;
 interface
 
 uses
-  SysUtils, Classes, Defs, Struc;
+  SysUtils, Classes, Defs, Struc299;
 
 type
   TOkFile = class

@@ -14,7 +14,7 @@ unit Protocol;
 interface
 
 uses
-  SysUtils, Classes, Defs, Struc;
+  SysUtils, Classes, Defs, Struc299;
 
 type
   TProtocol = class
