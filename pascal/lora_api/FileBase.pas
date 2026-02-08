@@ -45,7 +45,7 @@ type
     FUploader_Owned: Boolean;
     FList: TCollection;
     function MatchName(const AName, ASearch: String): Boolean;
-    procedure ReadFileData(var FD: FILEDATA);
+    procedure ReadFileData(var FD: FILEDATA_REC);
     function DateToUnix(const D: TFBDATE): LongWord;
     procedure UnixToDate(UnixTime: LongWord; out D: TFBDATE);
     procedure SortedInsertByName(var ns: NAMESORT);
@@ -242,7 +242,7 @@ begin
   Result := True;
 end;
 
-procedure TFileBase.ReadFileData(var FD: FILEDATA);
+procedure TFileBase.ReadFileData(var FD: FILEDATA_REC);
 var
   DescLen: Word;
   UplLen: Word;
@@ -314,7 +314,7 @@ end;
 
 function TFileBase.Add: Boolean;
 var
-  FD: FILEDATA;
+  FD: FILEDATA_REC;
   FI: FILEINDEX;
   DescLine: PChar;
   CRLF: array[0..1] of Char;
@@ -391,7 +391,7 @@ end;
 function TFileBase.ChangeLibrary(const AFrom, ATo: String): LongWord;
 var
   CrcFrom, CrcTo: LongWord;
-  FD: FILEDATA;
+  FD: FILEDATA_REC;
   FI: FILEINDEX;
 begin
   Result := 0;
@@ -423,7 +423,7 @@ end;
 
 procedure TFileBase.Delete;
 var
-  FD: FILEDATA;
+  FD: FILEDATA_REC;
   FI: FILEINDEX;
 begin
   if (FIdx = nil) or (FDat = nil) then Exit;
@@ -454,7 +454,7 @@ end;
 function TFileBase.First(const ASearch: String): Boolean;
 var
   NS: PNAMESORT;
-  FD: FILEDATA;
+  FD: FILEDATA_REC;
 begin
   Result := False;
   if FList = nil then
@@ -516,7 +516,7 @@ end;
 function TFileBase.Next(const ASearch: String): Boolean;
 var
   NS: PNAMESORT;
-  FD: FILEDATA;
+  FD: FILEDATA_REC;
   FI: FILEINDEX;
   AreaCrc: LongWord;
   Found: Boolean;
@@ -569,7 +569,7 @@ end;
 function TFileBase.Previous: Boolean;
 var
   NS: PNAMESORT;
-  FD: FILEDATA;
+  FD: FILEDATA_REC;
   FI: FILEINDEX;
   AreaCrc: LongWord;
   Found: Boolean;
@@ -618,7 +618,7 @@ end;
 
 function TFileBase.Read(const AFile: String): Boolean;
 var
-  FD: FILEDATA;
+  FD: FILEDATA_REC;
   FI: FILEINDEX;
   AreaCrc: LongWord;
 begin
@@ -652,7 +652,7 @@ end;
 
 function TFileBase.Replace: Boolean;
 var
-  FD: FILEDATA;
+  FD: FILEDATA_REC;
   FI: FILEINDEX;
   AreaCrc: LongWord;
   Found: Boolean;
@@ -764,7 +764,7 @@ end;
 
 function TFileBase.ReplaceHeader: Boolean;
 var
-  FD: FILEDATA;
+  FD: FILEDATA_REC;
   FI: FILEINDEX;
   AreaCrc: LongWord;
   NS: PNAMESORT;
@@ -882,7 +882,7 @@ end;
 procedure TFileBase.Pack;
 var
   NewIdx, NewDat: TFileStream;
-  FD: FILEDATA;
+  FD: FILEDATA_REC;
   FI: FILEINDEX;
   NewIdxFile, NewDatFile: String;
   Buffer: array[0..2047] of Byte;
@@ -1069,7 +1069,7 @@ end;
 procedure TFileBase.SearchFile(const AFile: String);
 var
   Crc: LongWord;
-  FD: FILEDATA;
+  FD: FILEDATA_REC;
   FI: array[0..MAX_INDEX - 1] of FILEINDEX;
   NS: NAMESORT;
   I, Count: Integer;
@@ -1110,7 +1110,7 @@ end;
 procedure TFileBase.SearchKeyword(const AKeyword: String);
 var
   Crc: LongWord;
-  FD: FILEDATA;
+  FD: FILEDATA_REC;
   FI: array[0..MAX_INDEX - 1] of FILEINDEX;
   NS: NAMESORT;
   I, Count: Integer;
@@ -1151,7 +1151,7 @@ end;
 procedure TFileBase.SearchText(const AText: String);
 var
   Crc: LongWord;
-  FD: FILEDATA;
+  FD: FILEDATA_REC;
   FI: array[0..MAX_INDEX - 1] of FILEINDEX;
   NS: NAMESORT;
   I, Count: Integer;
@@ -1235,7 +1235,7 @@ end;
 procedure TFileBase.SortByDate(ADate: LongWord);
 var
   Crc: LongWord;
-  FD: FILEDATA;
+  FD: FILEDATA_REC;
   FI: array[0..MAX_INDEX - 1] of FILEINDEX;
   NS: NAMESORT;
   I, Count: Integer;
@@ -1274,7 +1274,7 @@ end;
 procedure TFileBase.SortByDownload;
 var
   Crc: LongWord;
-  FD: FILEDATA;
+  FD: FILEDATA_REC;
   FI: array[0..MAX_INDEX - 1] of FILEINDEX;
   NS: NAMESORT;
   I, Count: Integer;
@@ -1311,7 +1311,7 @@ end;
 procedure TFileBase.SortByName;
 var
   Crc: LongWord;
-  FD: FILEDATA;
+  FD: FILEDATA_REC;
   FI: array[0..MAX_INDEX - 1] of FILEINDEX;
   NS: NAMESORT;
   I, Count: Integer;

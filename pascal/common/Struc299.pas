@@ -241,8 +241,8 @@ type
   end;
 
   { FileBase data structure }
-  PFILEDATA = ^FILEDATA;
-  FILEDATA = packed record
+  PFILEDATA_REC = ^FILEDATA_REC;
+  FILEDATA_REC = packed record
     Id:          LongWord;
     Area:        array[0..31] of Char;
     Name:        array[0..31] of Char;
@@ -377,8 +377,8 @@ type
   end;
 
   { OK file list }
-  POKFILE = ^OKFILE;
-  OKFILE = packed record
+  POKFILE_REC = ^OKFILE_REC;
+  OKFILE_REC = packed record
     Size:      Word;
     Name:      array[0..31] of Char;
     Path:      array[0..127] of Char;
@@ -411,8 +411,8 @@ type
   end;
 
   { Main configuration }
-  PCONFIG = ^CONFIG;
-  CONFIG = packed record
+  PCONFIG_REC = ^CONFIG_REC;
+  CONFIG_REC = packed record
     Size:               Word;
     Version_:           Word;
     Device:             array[0..31] of Char;
