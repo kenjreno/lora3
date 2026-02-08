@@ -113,9 +113,9 @@ begin
   WriteLn(' * Purging Messages');
   Today := DateTimeToUnix(Now) div 86400;
 
-  Data := TMsgData.Create;
+  Data := TMsgData.Create(Cfg.SystemPath);
   try
-    if Data.Open(Cfg.SystemPath) and Data.First then
+    if Data.First then
     repeat
       if Area <> '' then
         if not Data.Read(Area) then Break;
@@ -234,9 +234,9 @@ begin
 
   DoneList := TCollection.Create;
   try
-    Data := TMsgData.Create;
+    Data := TMsgData.Create(Cfg.SystemPath);
     try
-      if Data.Open(Cfg.SystemPath) and Data.First then
+      if Data.First then
       repeat
         if Area <> '' then
           if not Data.Read(Area) then Break;
@@ -302,9 +302,9 @@ var
 begin
   WriteLn(' * Reply-linking Messages');
 
-  Data := TMsgData.Create;
+  Data := TMsgData.Create(Cfg.SystemPath);
   try
-    if Data.Open(Cfg.SystemPath) and Data.First then
+    if Data.First then
     repeat
       if Area <> '' then
         if not Data.Read(Area) then Break;
@@ -398,9 +398,9 @@ var
 begin
   WriteLn(' * Indexing Messages');
 
-  Data := TMsgData.Create;
+  Data := TMsgData.Create(Cfg.SystemPath);
   try
-    if Data.Open(Cfg.SystemPath) and Data.First then
+    if Data.First then
     repeat
       Msg := CreateMsgBase(Data.Storage, Data.Path, Data.Board);
       if Msg <> nil then
@@ -438,11 +438,9 @@ begin
   {$I+}
   if IOResult <> 0 then begin WriteLn(' Error opening file'); Exit; end;
 
-  MsgDataObj := TMsgData.Create;
+  MsgDataObj := TMsgData.Create(Cfg.SystemPath);
   try
-    if MsgDataObj.Open(Cfg.SystemPath) then
-    begin
-      while not EOF(fp) do
+    while not EOF(fp) do
       begin
         ReadLn(fp, Temp);
         if (Length(Temp) = 0) or (Temp[1] = ';') then Continue;
@@ -461,7 +459,6 @@ begin
           Inc(Counter);
         end;
       end;
-    end;
   finally
     MsgDataObj.Free;
   end;
@@ -485,9 +482,9 @@ begin
   {$I+}
   if IOResult <> 0 then begin WriteLn(' Error creating file'); Exit; end;
 
-  MsgDataObj := TMsgData.Create;
+  MsgDataObj := TMsgData.Create(Cfg.SystemPath);
   try
-    if MsgDataObj.Open(Cfg.SystemPath) and MsgDataObj.First then
+    if MsgDataObj.First then
     repeat
       if MsgDataObj.EchoMail and (MsgDataObj.EchoTag <> '') then
       begin
@@ -563,7 +560,7 @@ begin
 
     Cfg := TConfig.Create;
     try
-      if not Cfg.Load(ConfigFile) then
+      if Cfg.Load(PChar(ConfigFile)) = 0 then
         Cfg.Default;
 
       if DoExport = 1 then ExportDescriptions(DescFile);

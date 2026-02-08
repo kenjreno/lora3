@@ -159,6 +159,9 @@ begin
 end;
 
 function TPacket.AddText(var MsgText: TCollection): Boolean;
+const
+  CR: Byte = 13;
+  PKT_END: array[0..2] of Byte = (0, 0, 0);
 var
   f1, f2, f3, f4, t1, t2, t3, t4: Word;
   AddedIntl, IsEchomail: Boolean;
@@ -180,7 +183,7 @@ begin
   PIdx.Position := fpStream.Position;
 
   FillChar(msgHdr, SizeOf(PKTMSGHDR), 0);
-  msgHdr.Version := 2;
+  msgHdr.Version_ := 2;
 
   ParseAddress(FromAddress, f1, f2, f3, f4);
   msgHdr.OrigNet := f2;
@@ -272,11 +275,11 @@ begin
       if (StrLComp(pszText, #1'INTL ', 6) = 0) and AddedIntl then continue;
     end;
     fpStream.Write(pszText^, StrLen(pszText));
-    fpStream.Write(#13, 1);
+    fpStream.Write(CR, 1);
   until PChar(MsgText.Next) = nil;
 
   { Write message terminator + packet end }
-  fpStream.Write(#0#0#0, 3);
+  fpStream.Write(PKT_END, 3);
 
   Index.Add(@PIdx, SizeOf(PKTINDEX));
   Inc(TotalMsgs);
@@ -593,7 +596,7 @@ begin
       if fpStream.Read(msgHdr, SizeOf(PKTMSGHDR)) < SizeOf(PKTMSGHDR) then
         Break;
 
-      if msgHdr.Version = 2 then
+      if msgHdr.Version_ = 2 then
       begin
         { Skip Date, To, From, Subject - all null-terminated strings }
         repeat c := 0; if fpStream.Read(c, 1) = 0 then c := 0; until (c = 0) or (fpStream.Position >= fpStream.Size);
@@ -607,7 +610,7 @@ begin
         PIdx.Number := TotalMsgs;
         Index.Add(@PIdx, SizeOf(PKTINDEX));
       end
-      else if msgHdr.Version <> 0 then
+      else if msgHdr.Version_ <> 0 then
       begin
         { Unknown version - skip until null or EOF }
         repeat
@@ -622,9 +625,9 @@ begin
           fpStream.Position := Position;
         end
         else
-          msgHdr.Version := 0;
+          msgHdr.Version_ := 0;
       end;
-    until msgHdr.Version = 0;
+    until msgHdr.Version_ = 0;
   end;
 end;
 
@@ -675,7 +678,7 @@ begin
   FillChar(msgHdr, SizeOf(PKTMSGHDR), 0);
   fpStream.Read(msgHdr, SizeOf(PKTMSGHDR));
 
-  if msgHdr.Version = 2 then
+  if msgHdr.Version_ = 2 then
   begin
     Result := True;
 
