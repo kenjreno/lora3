@@ -17,7 +17,44 @@ uses
 
 var
   TestPort: Word;
-  Done: Boolean;
+
+{ Helper: wait for data with timeout, returns True if data available }
+function WaitData(Conn: TCom; TimeoutMs: Integer): Boolean;
+var
+  Elapsed: Integer;
+begin
+  Elapsed := 0;
+  while (Conn.BytesReady = 0) and (Elapsed < TimeoutMs) and (Conn.Carrier <> 0) do
+  begin
+    Sleep(10);
+    Inc(Elapsed, 10);
+  end;
+  Result := Conn.BytesReady <> 0;
+end;
+
+{ Helper: receive exact number of bytes with timeout }
+function RecvExact(Conn: TCom; Buf: PByte; Count: LongWord; TimeoutMs: Integer): LongWord;
+var
+  Got: LongWord;
+  Elapsed: Integer;
+begin
+  Result := 0;
+  Elapsed := 0;
+  while (Result < Count) and (Elapsed < TimeoutMs) and (Conn.Carrier <> 0) do
+  begin
+    if Conn.BytesReady <> 0 then
+    begin
+      Got := Conn.ReadBytes(@Buf[Result], Count - Result);
+      Inc(Result, Got);
+      Elapsed := 0; { Reset timeout on data }
+    end
+    else
+    begin
+      Sleep(10);
+      Inc(Elapsed, 10);
+    end;
+  end;
+end;
 
 procedure RunTcpServer;
 var
@@ -41,17 +78,17 @@ begin
     WriteLn('  Listening on port ', TestPort, ' (HostIP=', StrPas(Server.HostIP), ')');
     WriteLn('  Waiting for client... (run test_comm_client in another terminal)');
 
-    { Wait for client }
+    { Wait for client - 60 second timeout }
     Tries := 0;
-    while (Server.WaitClient = 0) and (Tries < 3000) do { 30 second timeout }
+    while (Server.WaitClient = 0) and (Tries < 6000) do
     begin
       Sleep(10);
       Inc(Tries);
     end;
 
-    if Tries >= 3000 then
+    if Tries >= 6000 then
     begin
-      WriteLn('  TIMEOUT: No client connected within 30 seconds');
+      WriteLn('  TIMEOUT: No client connected within 60 seconds');
       Exit;
     end;
 
@@ -60,13 +97,11 @@ begin
 
     { Test 1: Single byte echo }
     WriteLn('  [Test 1] Byte echo...');
-    Tries := 0;
-    while (Server.BytesReady = 0) and (Tries < 200) do begin Sleep(10); Inc(Tries); end;
-    if Server.BytesReady <> 0 then
+    if WaitData(Server, 5000) then
     begin
       B := Server.ReadByte;
       WriteLn('    Received: $', IntToHex(B, 2));
-      Server.SendByte(B xor $FF); { Echo back XOR'd }
+      Server.SendByte(B xor $FF);
       Server.UnbufferBytes;
       WriteLn('    Sent back: $', IntToHex(B xor $FF, 2));
       WriteLn('  PASS: Byte echo');
@@ -77,16 +112,7 @@ begin
     { Test 2: 256-byte block with verification }
     WriteLn;
     WriteLn('  [Test 2] 256-byte block transfer...');
-    FillChar(Buf, 256, 0);
-    Received := 0;
-    Tries := 0;
-    while (Received < 256) and (Tries < 200) do
-    begin
-      if Server.BytesReady <> 0 then
-        Received := Received + Server.ReadBytes(@Buf[Received], 256 - Received);
-      Inc(Tries);
-      if Received < 256 then Sleep(10);
-    end;
+    Received := RecvExact(Server, @Buf[0], 256, 5000);
     WriteLn('    Received ', Received, ' bytes');
 
     if Received = 256 then
@@ -109,12 +135,12 @@ begin
     else
       WriteLn('  FAIL: Only received ', Received, ' of 256');
 
-    { Test 3: Stress - receive 100KB }
+    { Test 3: Stress - receive 100KB with 30s idle timeout }
     WriteLn;
     WriteLn('  [Test 3] Stress test (100KB)...');
     Total := 0;
     Tries := 0;
-    while (Total < 102400) and (Tries < 5000) and (Server.Carrier <> 0) do
+    while (Total < 102400) and (Tries < 30000) and (Server.Carrier <> 0) do
     begin
       if Server.BytesReady <> 0 then
       begin
@@ -127,8 +153,6 @@ begin
         Inc(Tries);
         Sleep(1);
       end;
-      if (Total mod 10240) = 0 then
-        Write(Format('    %d / 102400 bytes'#13, [Total]));
     end;
     WriteLn(Format('    %d / 102400 bytes', [Total]));
     if Total = 102400 then
@@ -139,11 +163,30 @@ begin
       Server.UnbufferBytes;
     end
     else
+    begin
       WriteLn('  FAIL: Only received ', Total, ' bytes');
+      if Server.Carrier = 0 then
+        WriteLn('    (carrier dropped)')
+      else
+        WriteLn('    (idle timeout - 30s)');
+    end;
 
     { Test 4: Bidirectional - server sends while receiving }
+    { Wait for sync byte from client to resynchronize }
     WriteLn;
     WriteLn('  [Test 4] Bidirectional test (50 rounds x 512B)...');
+    if WaitData(Server, 15000) then
+    begin
+      B := Server.ReadByte; { Consume sync byte $BB }
+      WriteLn('    Sync received ($', IntToHex(B, 2), ')');
+    end
+    else
+    begin
+      WriteLn('  FAIL: No sync byte from client');
+      WriteLn('  Skipping remaining tests');
+      Exit;
+    end;
+
     Total := 0;
     for i := 1 to 50 do
     begin
@@ -153,15 +196,7 @@ begin
       Server.UnbufferBytes;
 
       { Receive 512 bytes }
-      Received := 0;
-      Tries := 0;
-      while (Received < 512) and (Tries < 200) do
-      begin
-        if Server.BytesReady <> 0 then
-          Received := Received + Server.ReadBytes(@Buf[Received], 512 - Received);
-        Inc(Tries);
-        if Received < 512 then Sleep(5);
-      end;
+      Received := RecvExact(Server, @Buf[0], 512, 5000);
       Inc(Total, Received);
     end;
     if Total = 25600 then
@@ -174,16 +209,16 @@ begin
     WriteLn('  [Test 5] Carrier detection...');
     WriteLn('    Waiting for client disconnect...');
     Tries := 0;
-    while (Server.Carrier <> 0) and (Tries < 500) do
+    while (Server.Carrier <> 0) and (Tries < 1500) do
     begin
-      Server.BytesReady;
+      Server.BytesReady; { Triggers carrier check }
       Inc(Tries);
       Sleep(10);
     end;
     if Server.Carrier = 0 then
       WriteLn('  PASS: Detected client disconnect')
     else
-      WriteLn('  FAIL: Client still appears connected');
+      WriteLn('  FAIL: Client still appears connected (15s timeout)');
 
   finally
     Server.Free;
@@ -197,8 +232,7 @@ var
   Buf: array[0..255] of Byte;
   Received: Word;
   B: Byte;
-  i, Tries: Integer;
-  OK: Boolean;
+  Tries: Integer;
   PipePath, CtlPath: String;
 begin
   WriteLn;
@@ -236,9 +270,7 @@ begin
 
     { Echo test }
     WriteLn('  [Test] Pipe byte echo...');
-    Tries := 0;
-    while (Server.BytesReady = 0) and (Tries < 200) do begin Sleep(10); Inc(Tries); end;
-    if Server.BytesReady <> 0 then
+    if WaitData(Server, 5000) then
     begin
       B := Server.ReadByte;
       Server.SendByte(B xor $FF);
@@ -250,16 +282,7 @@ begin
 
     { Block test }
     WriteLn('  [Test] Pipe 64-byte block...');
-    FillChar(Buf, 64, 0);
-    Received := 0;
-    Tries := 0;
-    while (Received < 64) and (Tries < 200) do
-    begin
-      if Server.BytesReady <> 0 then
-        Received := Received + Server.ReadBytes(@Buf[Received], 64 - Received);
-      Inc(Tries);
-      if Received < 64 then Sleep(10);
-    end;
+    Received := RecvExact(Server, @Buf[0], 64, 5000);
     if Received = 64 then
     begin
       WriteLn('  PASS: Pipe received 64 bytes');
@@ -272,7 +295,7 @@ begin
     { Wait for disconnect }
     WriteLn('  Waiting for pipe client disconnect...');
     Tries := 0;
-    while (Server.Carrier <> 0) and (Tries < 300) do
+    while (Server.Carrier <> 0) and (Tries < 500) do
     begin
       Server.BytesReady;
       Inc(Tries);

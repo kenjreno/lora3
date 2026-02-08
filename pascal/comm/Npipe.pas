@@ -388,23 +388,29 @@ begin
   if hFile >= 0 then
   begin
     EndRun := 0;
-    fpFD_ZERO(fds);
-    fpFD_SET(hFile, fds);
-    tv.tv_sec := 0;
-    tv.tv_usec := 0;
-    if fpSelect(hFile + 1, @fds, nil, nil, @tv) > 0 then
+    { Check if we already have buffered data from a previous peek }
+    if RxBytes > 0 then
+      Result := 1
+    else
     begin
-      { Check if peer disconnected }
-      data := FpRead(hFile, @c, 1);
-      if data = 0 then
-        EndRun := 1   { Peer closed connection }
-      else if data > 0 then
+      fpFD_ZERO(fds);
+      fpFD_SET(hFile, fds);
+      tv.tv_sec := 0;
+      tv.tv_usec := 0;
+      if fpSelect(hFile + 1, @fds, nil, nil, @tv) > 0 then
       begin
-        { Push byte back - store in rx buffer }
-        RxBuffer[0] := c;
-        RxBytes := 1;
-        NextByte := @RxBuffer[0];
-        Result := 1;
+        { Check if peer disconnected }
+        data := FpRead(hFile, @c, 1);
+        if data = 0 then
+          EndRun := 1   { Peer closed connection }
+        else if data > 0 then
+        begin
+          { Push byte back - store in rx buffer }
+          RxBuffer[0] := c;
+          RxBytes := 1;
+          NextByte := @RxBuffer[0];
+          Result := 1;
+        end;
       end;
     end;
   end;

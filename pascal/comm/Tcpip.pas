@@ -249,7 +249,13 @@ begin
       begin
         i := FSock.RecvBufferEx(@RxBuffer[0], ComBase.RSIZE, 0);
         if i = 0 then
-          fCarrierDown := 1
+        begin
+          { With timeout=0, RecvBufferEx returns 0 for both EOF and
+            transient no-data. Only set carrier down if LastError = 0
+            (true EOF) or connection reset. }
+          if (FSock.LastError = 0) or (FSock.LastError = WSAECONNRESET) then
+            fCarrierDown := 1;
+        end
         else if i < 0 then
         begin
           RxBytes := 0;
