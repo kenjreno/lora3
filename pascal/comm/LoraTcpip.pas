@@ -18,7 +18,8 @@
 
   FreePascal conversion of tcpip.cpp - TTcpip class
   Uses Synapse blcksock for cross-platform TCP/UDP (Windows/Linux/OS2).
-  DOS uses Waterloo TCP (WATTCP) - stubbed for now.
+  DOS uses Waterloo TCP (Watt-32) if a packet driver is loaded.
+  Call TcpipAvailable to check at runtime before creating TTcpip objects.
 }
 
 unit LoraTcpip;
@@ -30,10 +31,26 @@ interface
 
 uses
   SysUtils,
-  {$IFNDEF MSDOS}
+  {$IFDEF MSDOS}
+  Dos,
+  {$ELSE}
   blcksock, synsock, synautil,
   {$ENDIF}
   LoraDefs, LoraComBase;
+
+{ Returns True if TCP/IP networking is available on this system.
+  - Windows/Linux/OS2: Always True (OS provides TCP/IP stack)
+  - DOS: True only if a packet driver is loaded (checks INT 60h-7Fh
+    for the "PKT DRVR" signature). Use this to decide whether to
+    offer TCP/IP features at startup. }
+function TcpipAvailable: Boolean;
+
+{$IFDEF MSDOS}
+{ Returns the interrupt vector number (60h-7Fh) of the packet driver,
+  or 0 if no packet driver is found. Equivalent to vec_search() from
+  the original Waterloo TCP code. }
+function PacketDriverVector: Byte;
+{$ENDIF}
 
 type
   TTcpip = class(TCom)
@@ -88,6 +105,57 @@ const
   PROTO_UDP = 1;
 
 implementation
+
+{$IFDEF MSDOS}
+const
+  PKT_DRVR_SIG: array[0..7] of Char = 'PKT DRVR';
+
+function PacketDriverVector: Byte;
+var
+  Vec: Byte;
+  IntVec: Pointer;
+  p: PChar;
+  Match: Boolean;
+  i: Integer;
+begin
+  Result := 0;
+  { Scan interrupt vectors 60h through 7Fh for packet driver signature.
+    The packet driver spec says: at the ISR entry point + 3 bytes,
+    there must be the ASCII string "PKT DRVR" (8 bytes). }
+  for Vec := $60 to $7F do
+  begin
+    GetIntVec(Vec, IntVec);
+    if IntVec <> nil then
+    begin
+      { Check for "PKT DRVR" at offset +3 from handler }
+      p := PChar(IntVec) + 3;
+      Match := True;
+      for i := 0 to 7 do
+      begin
+        if p[i] <> PKT_DRVR_SIG[i] then
+        begin
+          Match := False;
+          Break;
+        end;
+      end;
+      if Match then
+      begin
+        Result := Vec;
+        Exit;
+      end;
+    end;
+  end;
+end;
+{$ENDIF}
+
+function TcpipAvailable: Boolean;
+begin
+  {$IFDEF MSDOS}
+  Result := (PacketDriverVector <> 0);
+  {$ELSE}
+  Result := True;  { Win/Linux/OS2 always have TCP/IP }
+  {$ENDIF}
+end;
 
 constructor TTcpip.Create;
 begin
@@ -220,12 +288,19 @@ function TTcpip.ConnectServer(pszServerName: PChar; usPort: Word): Word;
 {$IFNDEF MSDOS}
 var
   LocalIP: String;
-  Parts: array[0..3] of Byte;
 {$ENDIF}
 begin
   Result := 0;
 
-  {$IFNDEF MSDOS}
+  {$IFDEF MSDOS}
+  { DOS: Would need Watt-32 library linked in.
+    For now, check if packet driver is present and return 0 if not.
+    When Watt-32 is integrated, this will call sock_init() + connect(). }
+  if not TcpipAvailable then
+    Exit;
+  { TODO: Watt-32 connect implementation }
+  fCarrierDown := 1;
+  {$ELSE}
   FSock := TTCPBlockSocket.Create;
   FSock.CreateSocket;
   if FSock.LastError = 0 then
@@ -266,7 +341,16 @@ var
 begin
   Result := 0;
 
-  {$IFNDEF MSDOS}
+  {$IFDEF MSDOS}
+  { DOS: Would need Watt-32 library linked in.
+    For now, check if packet driver is present and return 0 if not.
+    When Watt-32 is integrated, this will call sock_init() + bind/listen. }
+  if not TcpipAvailable then
+    Exit;
+  StrPCopy(HostIP, '127.0.0.1');
+  HostID := $7F000001;
+  { TODO: Watt-32 bind/listen implementation }
+  {$ELSE}
   { Get local host IP }
   LocalIP := ResolveIPToName(LocalHostName);
   if LocalIP = '' then
