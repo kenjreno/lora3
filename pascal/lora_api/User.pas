@@ -259,13 +259,13 @@ begin
   Archiver := StrPas(FUsr.Archiver);
   Protocol_ := StrPas(FUsr.Protocol);
   Signature := StrPas(FUsr.Signature);
-  FullScreen := FUsr.FullScreen;
-  IBMChars := FUsr.IBMChars;
-  MorePrompt := FUsr.MorePrompt;
-  ScreenClear := FUsr.ScreenClear;
-  InUserList := FUsr.InUserList;
-  MailCheck := FUsr.MailCheck;
-  NewFileCheck := FUsr.NewFileCheck;
+  FullScreen := Byte(FUsr.FullScreen);
+  IBMChars := Byte(FUsr.IBMChars);
+  MorePrompt := Byte(FUsr.MorePrompt);
+  ScreenClear := Byte(FUsr.ScreenClear);
+  InUserList := Byte(FUsr.InUserList);
+  MailCheck := Byte(FUsr.MailCheck);
+  NewFileCheck := Byte(FUsr.NewFileCheck);
   BirthDay := FUsr.BirthDay;
   BirthMonth := FUsr.BirthMonth;
   BirthYear := FUsr.BirthYear;
@@ -273,7 +273,7 @@ begin
   PwdLength := FUsr.PwdLength;
   PwdText := StrPas(FUsr.PwdText);
 
-  FCurrentCRC := StringCrc32(Name, $FFFFFFFF);
+  FCurrentCRC := StringCrc32(PChar(Name), $FFFFFFFF);
 end;
 
 procedure TUser.Class2Struct;
@@ -329,13 +329,13 @@ begin
   StrPCopy(FUsr.Archiver, Archiver);
   StrPCopy(FUsr.Protocol, Protocol_);
   StrPCopy(FUsr.Signature, Signature);
-  FUsr.FullScreen := FullScreen;
-  FUsr.IBMChars := IBMChars;
-  FUsr.MorePrompt := MorePrompt;
-  FUsr.ScreenClear := ScreenClear;
-  FUsr.InUserList := InUserList;
-  FUsr.MailCheck := MailCheck;
-  FUsr.NewFileCheck := NewFileCheck;
+  FUsr.FullScreen := Char(FullScreen);
+  FUsr.IBMChars := Char(IBMChars);
+  FUsr.MorePrompt := Char(MorePrompt);
+  FUsr.ScreenClear := Char(ScreenClear);
+  FUsr.InUserList := Char(InUserList);
+  FUsr.MailCheck := Char(MailCheck);
+  FUsr.NewFileCheck := Char(NewFileCheck);
   FUsr.BirthDay := BirthDay;
   FUsr.BirthMonth := BirthMonth;
   FUsr.BirthYear := BirthYear;
@@ -381,8 +381,8 @@ begin
 
   FillChar(FUIdx, SizeOf(FUIdx), 0);
   FUIdx.Deleted := 0;
-  FUIdx.NameCrc := StringCrc32(Name, $FFFFFFFF);
-  FUIdx.RealNameCrc := StringCrc32(RealName, $FFFFFFFF);
+  FUIdx.NameCrc := StringCrc32(PChar(Name), $FFFFFFFF);
+  FUIdx.RealNameCrc := StringCrc32(PChar(RealName), $FFFFFFFF);
   FUIdx.Position := FDat.Position;
 
   FCurrentCRC := FUIdx.NameCrc;
@@ -444,7 +444,7 @@ end;
 
 function TUser.CheckPassword(const APwd: String): Boolean;
 begin
-  Result := Password = StringCrc32(UpperCase(APwd), $FFFFFFFF);
+  Result := Password = StringCrc32(PChar(UpperCase(APwd)), $FFFFFFFF);
 end;
 
 function TUser.Delete: Boolean;
@@ -458,7 +458,7 @@ begin
   if (FDat = nil) or (FIdx = nil) then Exit;
 
   try
-    NameCrc := StringCrc32(Name, $FFFFFFFF);
+    NameCrc := StringCrc32(PChar(Name), $FFFFFFFF);
     FIdx.Seek(0, soBeginning);
     while FIdx.Read(FUIdx, SizeOf(FUIdx)) = SizeOf(FUIdx) do
     begin
@@ -506,7 +506,7 @@ begin
 
   try
     Clear;
-    TestCrc := StringCrc32(AName, $FFFFFFFF);
+    TestCrc := StringCrc32(PChar(AName), $FFFFFFFF);
 
     { Search by name CRC }
     FIdx.Seek(0, soBeginning);
@@ -578,7 +578,7 @@ end;
 
 procedure TUser.SetPassword(const APwd: String);
 begin
-  Password := StringCrc32(UpperCase(APwd), $FFFFFFFF);
+  Password := StringCrc32(PChar(UpperCase(APwd)), $FFFFFFFF);
 end;
 
 procedure TUser.Pack;
@@ -619,8 +619,8 @@ begin
     begin
       FillChar(FUIdx, SizeOf(FUIdx), 0);
       FUIdx.Deleted := 0;
-      FUIdx.NameCrc := StringCrc32(StrPas(FUsr.Name), $FFFFFFFF);
-      FUIdx.RealNameCrc := StringCrc32(StrPas(FUsr.RealName), $FFFFFFFF);
+      FUIdx.NameCrc := StringCrc32(FUsr.Name, $FFFFFFFF);
+      FUIdx.RealNameCrc := StringCrc32(FUsr.RealName, $FFFFFFFF);
       FUIdx.Position := FDat.Position;
       FDat.Write(FUsr, SizeOf(FUsr));
       FIdx.Write(FUIdx, SizeOf(FUIdx));
@@ -690,8 +690,8 @@ begin
       begin
         FillChar(FUIdx, SizeOf(FUIdx), 0);
         FUIdx.Deleted := 0;
-        FUIdx.NameCrc := StringCrc32(StrPas(FUsr.Name), $FFFFFFFF);
-        FUIdx.RealNameCrc := StringCrc32(StrPas(FUsr.RealName), $FFFFFFFF);
+        FUIdx.NameCrc := StringCrc32(FUsr.Name, $FFFFFFFF);
+        FUIdx.RealNameCrc := StringCrc32(FUsr.RealName, $FFFFFFFF);
         FUIdx.Position := Position;
         FIdx.Write(FUIdx, SizeOf(FUIdx));
       end;
@@ -729,9 +729,9 @@ begin
       Class2Struct;
 
       { Update index CRCs }
-      NewNameCrc := StringCrc32(Name, $FFFFFFFF);
+      NewNameCrc := StringCrc32(PChar(Name), $FFFFFFFF);
       FUIdx.NameCrc := NewNameCrc;
-      FUIdx.RealNameCrc := StringCrc32(RealName, $FFFFFFFF);
+      FUIdx.RealNameCrc := StringCrc32(PChar(RealName), $FFFFFFFF);
       FIdx.Seek(FIdx.Position - SizeOf(FUIdx), soBeginning);
       FIdx.Write(FUIdx, SizeOf(FUIdx));
 
@@ -1135,7 +1135,7 @@ begin
   Buffer.Index_ := FData.Elements + 1;
   Index_ := Buffer.Index_;
 
-  Result := FData.Add(@Buffer, SizeOf(FILETAGS));
+  Result := FData.Add(@Buffer, SizeOf(FILETAGS)) <> 0;
   if Result then
   begin
     Inc(TotalFiles);
@@ -1304,7 +1304,7 @@ begin
         begin
           Buffer[I].Index_ := FData.Elements + 1;
           Index_ := Buffer[I].Index_;
-          if FData.Add(@Buffer[I], SizeOf(FILETAGS)) then
+          if FData.Add(@Buffer[I], SizeOf(FILETAGS)) <> 0 then
           begin
             Inc(TotalFiles);
             Inc(TotalBytes, Buffer[I].Size);

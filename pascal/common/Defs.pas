@@ -150,7 +150,9 @@ type
 function Crc16(AByte: Byte; Crc: Word): Word;
 function Crc32(AByte: Byte; Crc: LongWord): LongWord;
 function StringCrc16(S: PChar; Crc: Word): Word;
+function StringCrc16(const S: String; Crc: Word): Word;
 function StringCrc32(S: PChar; Crc: LongWord): LongWord;
+function StringCrc32(const S: String; Crc: LongWord): LongWord;
 
 { Timer functions }
 procedure LoraPause(lHund: LongInt);
@@ -275,6 +277,16 @@ begin
     Result := Crc32(Byte(UpCase(S^)), Result);
     Inc(S);
   end;
+end;
+
+function StringCrc16(const S: String; Crc: Word): Word;
+begin
+  Result := StringCrc16(PChar(S), Crc);
+end;
+
+function StringCrc32(const S: String; Crc: LongWord): LongWord;
+begin
+  Result := StringCrc32(PChar(S), Crc);
 end;
 
 procedure LoraPause(lHund: LongInt);
