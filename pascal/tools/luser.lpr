@@ -20,8 +20,8 @@ uses
   SysUtils, DateUtils, User;
 
 const
-  PROG_NAME    = 'LoraBBS';
-  PROG_VERSION = '2.99.70';
+  PROG_NAME    = 'FastWay BBS';
+  PROG_VERSION = '1.0.0';
 
 procedure PurgeUsers(Days: Word; Level: Word);
 var
@@ -87,7 +87,7 @@ begin
 
   WriteLn;
   WriteLn(Format('LUSER; %s v%s - User maintenance utility', [PROG_NAME, PROG_VERSION]));
-  WriteLn('       Copyright (c) 1991-96 by Marco Maccaferri. All Rights Reserved.');
+  WriteLn('       Based on LoraBBS by Marco Maccaferri. GPL v2 Licensed.');
   WriteLn;
 
   if ParamCount = 0 then

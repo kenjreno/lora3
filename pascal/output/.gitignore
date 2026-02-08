@@ -1,0 +1,3 @@
+# Build output directory - ignore all compiled files
+*
+!.gitignore
