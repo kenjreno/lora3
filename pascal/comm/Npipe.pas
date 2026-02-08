@@ -748,6 +748,9 @@ end;
 function TPipe.ReadBytes(ABytes: PByte; ALen: Word): Word;
 var
   bytesRead: {$IFDEF WINDOWS}DWORD{$ELSE}LongWord{$ENDIF};
+  {$IFDEF UNIX}
+  n: LongInt;
+  {$ENDIF}
 begin
   bytesRead := 0;
 
@@ -785,7 +788,6 @@ begin
     { Read remaining from socket }
     if ALen > 0 then
     begin
-      var n: LongInt;
       n := FpRead(hFile, ABytes, ALen);
       if n > 0 then
         Inc(bytesRead, n);

@@ -303,7 +303,7 @@ begin
     Saved := False;
     fdDat.Seek(0, soFromBeginning);
     Addr1.Parse(Address_);
-    StrCopy(Address_, Addr1.String_);
+    StrCopy(Address_, Addr1.Str);
 
     while fdDat.Read(N, SizeOf(NODES_REC)) = SizeOf(NODES_REC) do
     begin
@@ -505,7 +505,7 @@ begin
   fdDat.Seek(0, soFromBeginning);
   while fdDat.Read(N, SizeOf(NODES_REC)) = SizeOf(NODES_REC) do
   begin
-    if StrIComp(N.Address, Addr1.String_) = 0 then
+    if StrIComp(N.Address, Addr1.Str) = 0 then
     begin
       Result := 1;
       Break;
@@ -540,7 +540,7 @@ begin
     fdDat.Seek(0, soFromBeginning);
     while fdDat.Read(N, SizeOf(NODES_REC)) = SizeOf(NODES_REC) do
     begin
-      if StrIComp(N.Address, lpAddress.String_) = 0 then
+      if StrIComp(N.Address, lpAddress.Str) = 0 then
       begin
         Result := 1;
         Break;
@@ -558,7 +558,7 @@ begin
   begin
     if ReadNodelist(lpAddress) = 1 then
     begin
-      StrCopy(Address_, lpAddress.String_);
+      StrCopy(Address_, lpAddress.Str);
       Result := 1;
     end;
   end;
@@ -588,15 +588,17 @@ var
   SL: TStringList;
   Fields: TStringList;
   i, p: Integer;
+  Done: Boolean;
 begin
   Result := 0;
+  Done := False;
   FName := DataFile + '.idx';
   if not FileExists(FName) then Exit;
 
   try
     fsIdx := TFileStream.Create(FName, fmOpenRead or fmShareDenyNone);
     try
-      while (fsIdx.Read(idxHead, SizeOf(IDXHEADER)) = SizeOf(IDXHEADER)) and (Result = 0) do
+      while (fsIdx.Read(idxHead, SizeOf(IDXHEADER)) = SizeOf(IDXHEADER)) and (Result = 0) and not Done do
       begin
         for Num := 0 to idxHead.Entry - 1 do
         begin
@@ -638,7 +640,7 @@ begin
                     begin
                       if First_ then
                       begin
-                        i := SL.Count; { break outer }
+                        Done := True; { break outer }
                         Break;
                       end;
                       First_ := True;
@@ -724,7 +726,7 @@ begin
 
   fdDat.Seek(0, soFromBeginning);
   Addr1.Parse(Address_);
-  StrCopy(Address_, Addr1.String_);
+  StrCopy(Address_, Addr1.Str);
 
   while fdDat.Read(N, SizeOf(NODES_REC)) = SizeOf(NODES_REC) do
   begin
