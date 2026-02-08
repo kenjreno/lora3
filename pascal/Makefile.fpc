@@ -9,22 +9,19 @@
 name=fastwaybbs
 version=1.0.0
 
-[require]
-packages=fcl-base
-
 [compiler]
 options=-MObjFPC -Sh -O2
-unitdir=common comm lora_api msgbase
+unitdir=common comm lora_api msgbase synapse
 includedir=common
 
 [target]
 programs=tools/luser tools/lfile tools/lmsg tools/snoop
 
 [clean]
-files=$(wildcard output/*.o) $(wildcard output/*.ppu) $(wildcard output/*.so) $(wildcard output/*.dll)
+files=$(wildcard units/$(CPU_TARGET)-$(OS_TARGET)/*.o) $(wildcard units/$(CPU_TARGET)-$(OS_TARGET)/*.ppu)
 
 [install]
 fpcpackage=n
 
 [default]
-fpcdir=.
+fpcdir=/usr
