@@ -15,7 +15,7 @@ unitdir=common comm lora_api msgbase synapse
 includedir=common
 
 [target]
-programs=tools/luser tools/lfile tools/lmsg tools/snoop tests/test_defs tests/test_collect tests/test_address tests/test_struc299 tests/test_lora_api tests/test_msgbase tests/test_comm
+programs=tools/luser tools/lfile tools/lmsg tools/snoop tests/test_defs tests/test_collect tests/test_address tests/test_struc299 tests/test_lora_api tests/test_msgbase tests/test_comm tests/test_comm_server tests/test_comm_client tests/test_serial
 
 [clean]
 files=$(wildcard units/$(CPU_TARGET)-$(OS_TARGET)/*.o) $(wildcard units/$(CPU_TARGET)-$(OS_TARGET)/*.ppu)

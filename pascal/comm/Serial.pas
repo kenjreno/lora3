@@ -146,11 +146,14 @@ begin
 end;
 
 destructor TSerial.Destroy;
+{$IFDEF MSDOS}
+var
+  Regs: Registers;
+{$ENDIF}
 begin
   {$IFDEF MSDOS}
   if FInitialized then
   begin
-    var Regs: Registers;
     FossilCall(FOSSIL_DEINIT, FPort, Regs);
     FInitialized := False;
   end;

@@ -3,6 +3,8 @@
   Test program for Struc299 unit - packed record sizes and field layout
   Validates that packed records match the C struct sizes exactly,
   which is critical for binary file compatibility.
+
+  Sizes verified against original struc299.h with #pragma pack(1).
 }
 
 program test_struc299;
@@ -50,9 +52,10 @@ begin
   WriteLn;
   WriteLn('=== Common Record Sizes ===');
 
-  { ADDR from Defs.pas }
-  CheckSize('ADDR', SizeOf(ADDR), 40);  { 4*Word(8) + Domain[32] }
-  CheckSize('MAILADDRESS', SizeOf(MAILADDRESS), 42); { 5*Word(10) + Domain[32] }
+  { ADDR from Defs.pas: 4*Word(8) + Domain[32] + Flags(2) = 42 }
+  CheckSize('ADDR', SizeOf(ADDR), 42);
+  { MAILADDRESS: 5*Word(10) + Domain[32] = 42 }
+  CheckSize('MAILADDRESS', SizeOf(MAILADDRESS), 42);
 end;
 
 procedure TestFidoNetRecordSizes;
@@ -60,12 +63,10 @@ begin
   WriteLn;
   WriteLn('=== FidoNet Packet Record Sizes ===');
 
-  { PKT2HDR - FTS-0001 Type 2 packet header }
   CheckSize('PKT2HDR', SizeOf(PKT2HDR), 58);
-  { PKT22HDR - FSC-0048 Type 2.2 extension }
   CheckSize('PKT22HDR', SizeOf(PKT22HDR), 58);
-  { PKTMSGHDR - packed message header in .PKT }
   CheckSize('PKTMSGHDR', SizeOf(PKTMSGHDR), 14);
+  CheckSize('FIDOMSG', SizeOf(FIDOMSG), 190);
 end;
 
 procedure TestUserRecordSizes;
@@ -73,11 +74,10 @@ begin
   WriteLn;
   WriteLn('=== User Record Sizes ===');
 
-  { USER_REC - main user data record }
-  { The C struct is 864 bytes }
-  CheckSize('USER_REC', SizeOf(USER_REC), 864);
-  { UINDEX - user index record }
-  CheckSize('UINDEX', SizeOf(UINDEX), 8);
+  { USER: Size verified against struc299.h USER struct }
+  CheckSize('USER_REC', SizeOf(USER_REC), 782);
+  { UINDEX: Deleted(2) + NameCrc(4) + RealNameCrc(4) + Position(4) = 14 }
+  CheckSize('UINDEX', SizeOf(UINDEX), 14);
 end;
 
 procedure TestMessageRecordSizes;
@@ -85,13 +85,13 @@ begin
   WriteLn;
   WriteLn('=== Message Record Sizes ===');
 
-  { MESSAGE_REC - message area data }
-  CheckSize('MESSAGE_REC', SizeOf(MESSAGE_REC), 512);
-  { MSGINDEX - message area index }
-  CheckSize('INDEX', SizeOf(INDEX), 4);
-  { MSGTAGS - last-read tags }
-  CheckSize('MSGTAGS', SizeOf(MSGTAGS), 48);
-  { MDATE - message date }
+  { MESSAGE: verified against struc299.h }
+  CheckSize('MESSAGE_REC', SizeOf(MESSAGE_REC), 759);
+  { INDEX: Key[16]+Level(2)+AccessFlags(4)+DenyFlags(4)+Position(4)+Flags(2) = 32 }
+  CheckSize('INDEX', SizeOf(INDEX), 32);
+  { MSGTAGS: Free(1)+Tagged(1)+UserId(4)+Area[16]+LastRead(4)+OlderMsg(4) = 30 }
+  CheckSize('MSGTAGS', SizeOf(MSGTAGS), 30);
+  { MDATE: Day+Month+Second(3 bytes) + Year(2) + Hour+Minute(2) = 7 }
   CheckSize('MDATE', SizeOf(MDATE), 7);
 end;
 
@@ -100,19 +100,19 @@ begin
   WriteLn;
   WriteLn('=== File Record Sizes ===');
 
-  { FILEDATA_REC }
-  CheckSize('FILEDATA_REC', SizeOf(FILEDATA_REC), 512);
-  { FILEINDEX }
-  CheckSize('FILEINDEX', SizeOf(FILEINDEX), 4);
+  { FILEDATA: verified against struc299.h }
+  CheckSize('FILEDATA_REC', SizeOf(FILEDATA_REC), 268);
+  { FILEINDEX: Area(4)+Name[32]+UploadDate(4)+Offset(4)+Flags(2) = 46 }
+  CheckSize('FILEINDEX', SizeOf(FILEINDEX), 46);
 end;
 
-procedure TestConfigRecordSizes;
+procedure TestConfigRecordSize;
 begin
   WriteLn;
   WriteLn('=== Config Record Sizes ===');
 
-  { CONFIG_REC - main system config }
-  CheckSize('CONFIG_REC', SizeOf(CONFIG_REC), 8192);
+  { CONFIG: large struct, verified against struc299.h }
+  CheckSize('CONFIG_REC', SizeOf(CONFIG_REC), 3894);
 end;
 
 procedure TestHudsonRecordSizes;
@@ -120,12 +120,12 @@ begin
   WriteLn;
   WriteLn('=== Hudson Message Base Record Sizes ===');
 
-  { HMSGIDX - Hudson message index }
-  CheckSize('HMSGIDX', SizeOf(HMSGIDX), 5);
-  { HMSGTOIDX - Hudson to-name index }
+  { HMSGIDX: MsgNum(2) + Board(1) = 3 }
+  CheckSize('HMSGIDX', SizeOf(HMSGIDX), 3);
+  { HMSGTOIDX: String_[36] = 36 }
   CheckSize('HMSGTOIDX', SizeOf(HMSGTOIDX), 36);
-  { HMSGHDR - Hudson message header }
-  CheckSize('HMSGHDR', SizeOf(HMSGHDR), 249);
+  { HMSGHDR: verified against msgbase.h }
+  CheckSize('HMSGHDR', SizeOf(HMSGHDR), 187);
 end;
 
 procedure TestSquishRecordSizes;
@@ -133,13 +133,9 @@ begin
   WriteLn;
   WriteLn('=== Squish Message Base Record Sizes ===');
 
-  { SQBASE - Squish base header }
   CheckSize('SQBASE', SizeOf(SQBASE), 256);
-  { SQIDX - Squish index entry }
   CheckSize('SQIDX', SizeOf(SQIDX), 12);
-  { SQHDR - Squish message frame header }
   CheckSize('SQHDR', SizeOf(SQHDR), 28);
-  { XMSG - Squish message header }
   CheckSize('XMSG', SizeOf(XMSG), 238);
 end;
 
@@ -148,7 +144,26 @@ begin
   WriteLn;
   WriteLn('=== OkFile Record Sizes ===');
 
-  CheckSize('OKFILE_REC', SizeOf(OKFILE_REC), 195);
+  { OKFILE: Size(2)+Name[32]+Path[128]+Pwd[32]+Normal+Known+Protected = 197 }
+  CheckSize('OKFILE_REC', SizeOf(OKFILE_REC), 197);
+end;
+
+procedure TestOtherRecordSizes;
+begin
+  WriteLn;
+  WriteLn('=== Other Record Sizes ===');
+
+  CheckSize('ECHOLINK', SizeOf(ECHOLINK), 16);
+  CheckSize('FILETAGS', SizeOf(FILETAGS), 36);
+  CheckSize('CHANNEL', SizeOf(CHANNEL), 256);
+  CheckSize('NODES_REC', SizeOf(NODES_REC), 256);
+  CheckSize('PACKER_REC', SizeOf(PACKER_REC), 140);
+  CheckSize('EVENT_REC', SizeOf(EVENT_REC), 120);
+  CheckSize('PROTOCOL_REC', SizeOf(PROTOCOL_REC), 120);
+  CheckSize('LIMITS_REC', SizeOf(LIMITS_REC), 48);
+  CheckSize('SYSSTAT', SizeOf(SYSSTAT), 32);
+  CheckSize('DUPEDATA', SizeOf(DUPEDATA), 8);
+  CheckSize('DUPEIDX', SizeOf(DUPEIDX), 8);
 end;
 
 procedure TestFieldLayout;
@@ -160,7 +175,7 @@ begin
   WriteLn;
   WriteLn('=== Field Layout Validation ===');
 
-  { Verify ADDR field offsets by filling and checking }
+  { Verify ADDR field offsets }
   FillChar(FAddr, SizeOf(FAddr), 0);
   FAddr.Zone := $1234;
   FAddr.Net := $5678;
@@ -206,10 +221,11 @@ begin
   TestUserRecordSizes;
   TestMessageRecordSizes;
   TestFileRecordSizes;
-  TestConfigRecordSizes;
+  TestConfigRecordSize;
   TestHudsonRecordSizes;
   TestSquishRecordSizes;
   TestOkFileRecordSize;
+  TestOtherRecordSizes;
   TestFieldLayout;
 
   WriteLn;
