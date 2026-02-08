@@ -775,6 +775,49 @@ type
     FirstTime:   Byte;
   end;
 
+  { Outbound file entry (in-memory, not stored on disk) }
+  POUTFILE = ^OUTFILE;
+  OUTFILE = packed record
+    Zone:           Word;
+    Net:            Word;
+    Node:           Word;
+    Point:          Word;
+    Domain:         array[0..31] of Char;
+    Name:           array[0..31] of Char;
+    Complete:       array[0..127] of Char;
+    Size:           LongWord;
+    ArcMail:        Byte;
+    MailPKT:        Byte;
+    Request:        Byte;
+    Poll:           Byte;
+    DeleteAfter:    Byte;
+    TruncateAfter:  Byte;
+    Status:         Char;
+  end;
+
+  { Outbound node queue entry (in-memory, not stored on disk) }
+  PQUEUE = ^QUEUE;
+  QUEUE = packed record
+    Zone:      Word;
+    Net:       Word;
+    Node:      Word;
+    Point:     Word;
+    Domain:    array[0..31] of Char;
+    Size:      LongWord;
+    Files:     Word;
+    ArcMail:   Byte;
+    MailPKT:   Byte;
+    Request:   Byte;
+    Crash:     Byte;
+    Direct:    Byte;
+    Hold:      Byte;
+    Immediate: Byte;
+    Normal:    Byte;
+    Attempts:  Word;
+    Failed:    Word;
+    LastCall:  array[0..31] of Char;
+  end;
+
 implementation
 
 end.
