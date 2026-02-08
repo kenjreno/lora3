@@ -231,10 +231,10 @@ begin
   Msg.Board := Board;
   Msg.Flags := Flags_;
   Msg.Group := Group;
-  if EchoMail then Msg.EchoMail := 1 else Msg.EchoMail := 0;
-  if ShowGlobal then Msg.ShowGlobal := 1 else Msg.ShowGlobal := 0;
-  if UpdateNews then Msg.UpdateNews := 1 else Msg.UpdateNews := 0;
-  if Offline then Msg.Offline := 1 else Msg.Offline := 0;
+  if EchoMail then Msg.EchoMail := Char(1) else Msg.EchoMail := #0;
+  if ShowGlobal then Msg.ShowGlobal := Char(1) else Msg.ShowGlobal := #0;
+  if UpdateNews then Msg.UpdateNews := Char(1) else Msg.UpdateNews := #0;
+  if Offline then Msg.Offline := Char(1) else Msg.Offline := #0;
   StrPCopy(Msg.MenuName, MenuName);
   StrPCopy(Msg.Moderator, Moderator);
   Msg.Cost := Cost;
@@ -270,10 +270,10 @@ begin
   Board := Msg.Board;
   Flags_ := Msg.Flags;
   Group := Msg.Group;
-  EchoMail := Msg.EchoMail <> 0;
-  ShowGlobal := Msg.ShowGlobal <> 0;
-  UpdateNews := Msg.UpdateNews <> 0;
-  Offline := Msg.Offline <> 0;
+  EchoMail := Byte(Msg.EchoMail) <> 0;
+  ShowGlobal := Byte(Msg.ShowGlobal) <> 0;
+  UpdateNews := Byte(Msg.UpdateNews) <> 0;
+  Offline := Byte(Msg.Offline) <> 0;
   MenuName := StrPas(Msg.MenuName);
   Moderator := StrPas(Msg.Moderator);
   Cost := Msg.Cost;
@@ -1041,8 +1041,8 @@ begin
           end;
           if S = '' then Continue;
 
-          Addr.Parse(S);
-          if not Check(Addr.String_) then
+          Addr.Parse(PChar(S));
+          if not Check(Addr.Str) then
           begin
             if Addr.Zone <> 0 then Zone := Addr.Zone;
             if Addr.Net <> 0 then Net := Addr.Net;
@@ -1117,7 +1117,7 @@ begin
 
   Addr := TAddress.Create;
   try
-    Addr.Parse(S);
+    Addr.Parse(PChar(S));
 
     El := PECHOLINK(FData.First);
     while El <> nil do

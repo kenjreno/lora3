@@ -229,10 +229,10 @@ begin
   ulMsg := Highest + 1;
 
   FillChar(FJamHdr, SizeOf(JAMHDR), 0);
-  FJamHdr.Signature[0] := Ord('J');
-  FJamHdr.Signature[1] := Ord('A');
-  FJamHdr.Signature[2] := Ord('M');
-  FJamHdr.Signature[3] := 0;
+  FJamHdr.Signature[0] := 'J';
+  FJamHdr.Signature[1] := 'A';
+  FJamHdr.Signature[2] := 'M';
+  FJamHdr.Signature[3] := #0;
   FJamHdr.Revision := CURRENTREVLEV;
   FJamHdr.MsgNum := ulMsg;
   FJamHdr.DateWritten := MDateToUnix(Written);
@@ -523,7 +523,7 @@ end;
 
 function TJamMsg.Open(const AName: string): Boolean;
 var
-  Sig: array[0..3] of Byte;
+  Sig: array[0..3] of Char;
 begin
   Result := False;
 
@@ -534,10 +534,10 @@ begin
     begin
       { Initialize new header info }
       FillChar(FHdrInfo, SizeOf(JAMHDRINFO), 0);
-      FHdrInfo.Signature[0] := Ord('J');
-      FHdrInfo.Signature[1] := Ord('A');
-      FHdrInfo.Signature[2] := Ord('M');
-      FHdrInfo.Signature[3] := 0;
+      FHdrInfo.Signature[0] := 'J';
+      FHdrInfo.Signature[1] := 'A';
+      FHdrInfo.Signature[2] := 'M';
+      FHdrInfo.Signature[3] := #0;
       FHdrInfo.DateCreated := DateTimeToUnix(Now);
       FHdrInfo.BaseMsgNum := 1;
       FHdrStream.Position := 0;
@@ -545,7 +545,7 @@ begin
     end;
 
     { Verify signature }
-    Sig[0] := Ord('J'); Sig[1] := Ord('A'); Sig[2] := Ord('M'); Sig[3] := 0;
+    Sig[0] := 'J'; Sig[1] := 'A'; Sig[2] := 'M'; Sig[3] := #0;
     if (FHdrInfo.Signature[0] = Sig[0]) and (FHdrInfo.Signature[1] = Sig[1]) and
        (FHdrInfo.Signature[2] = Sig[2]) and (FHdrInfo.Signature[3] = Sig[3]) then
     begin
