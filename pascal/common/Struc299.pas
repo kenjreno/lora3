@@ -722,6 +722,31 @@ type
     MailCalls:  LongWord;
   end;
 
+  { Nodelist definition }
+  PNODELIST_REC = ^NODELIST_REC;
+  NODELIST_REC = packed record
+    Size: Word;
+    Zone: Word;
+    Name: array[0..63] of Char;
+    Diff: array[0..63] of Char;
+  end;
+
+  { Nodelist index header }
+  PIDXHEADER = ^IDXHEADER;
+  IDXHEADER = packed record
+    Name:  array[0..13] of Char;
+    Entry: LongWord;
+  end;
+
+  { Nodelist index entry }
+  PNODEIDX = ^NODEIDX;
+  NODEIDX = packed record
+    Zone:     Word;
+    Net:      Word;
+    Node:     Word;
+    Position: LongWord;
+  end;
+
   { Menu file header (.MNU files) }
   PMENUHEADER = ^MENUHEADER;
   MENUHEADER = packed record
