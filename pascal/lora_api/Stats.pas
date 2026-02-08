@@ -15,7 +15,7 @@ unit Stats;
 interface
 
 uses
-  SysUtils, Defs;
+  SysUtils, Classes, Defs;
 
 const
   STAT_OFFLINE    = 0;
@@ -72,7 +72,7 @@ type
 
   private
     LastTask: Word;
-    DataFile: array[0..127] of Char;
+    DataFile: String;
     Sys:      SYSSTAT;
     Line:     LINESTAT;
   end;
@@ -82,24 +82,26 @@ implementation
 constructor TStatistics.Create;
 begin
   inherited Create;
-  StrCopy(DataFile, 'stats.dat');
+  DataFile := 'stats.dat';
 end;
 
 constructor TStatistics.Create(pszDataPath: PChar);
 begin
   inherited Create;
-  StrCopy(DataFile, pszDataPath);
-  if DataFile[0] <> #0 then
-  begin
-    if DataFile[StrLen(DataFile) - 1] <> PathDelim then
-      StrCat(DataFile, PathDelim);
-  end;
-  StrCat(DataFile, 'stats.dat');
+  DataFile := IncludeTrailingPathDelimiter(StrPas(pszDataPath)) + 'stats.dat';
 end;
 
 destructor TStatistics.Destroy;
 begin
   inherited Destroy;
+end;
+
+function OpenOrCreate(const FileName: String): TFileStream;
+begin
+  if FileExists(FileName) then
+    Result := TFileStream.Create(FileName, fmOpenReadWrite or fmShareDenyNone)
+  else
+    Result := TFileStream.Create(FileName, fmCreate);
 end;
 
 function TStatistics.First: Word;
@@ -110,27 +112,27 @@ end;
 
 function TStatistics.Next: Word;
 var
-  fd: LongInt;
+  fs: TFileStream;
 begin
   Result := 0;
   FillChar(Sys, SizeOf(Sys), 0);
 
-  fd := FileOpen(StrPas(DataFile), fmOpenReadWrite or fmShareDenyNone);
-  if fd = -1 then
-    fd := FileCreate(StrPas(DataFile));
-
-  if fd <> -1 then
-  begin
-    FileRead(fd, Sys, SizeOf(Sys));
-    while FileRead(fd, Line, SizeOf(Line)) = SizeOf(Line) do
-    begin
-      if Line.Number > LastTask then
+  try
+    fs := OpenOrCreate(DataFile);
+    try
+      fs.Read(Sys, SizeOf(Sys));
+      while fs.Read(Line, SizeOf(Line)) = SizeOf(Line) do
       begin
-        Result := 1;
-        Break;
+        if Line.Number > LastTask then
+        begin
+          Result := 1;
+          Break;
+        end;
       end;
+    finally
+      fs.Free;
     end;
-    FileClose(fd);
+  except
   end;
 
   if Result = 1 then
@@ -153,28 +155,28 @@ end;
 
 procedure TStatistics.Read(usLine: Word);
 var
-  fd: LongInt;
+  fs: TFileStream;
   Found: Boolean;
 begin
   Found := False;
   FillChar(Sys, SizeOf(Sys), 0);
 
-  fd := FileOpen(StrPas(DataFile), fmOpenReadWrite or fmShareDenyNone);
-  if fd = -1 then
-    fd := FileCreate(StrPas(DataFile));
-
-  if fd <> -1 then
-  begin
-    FileRead(fd, Sys, SizeOf(Sys));
-    while FileRead(fd, Line, SizeOf(Line)) = SizeOf(Line) do
-    begin
-      if Line.Number = usLine then
+  try
+    fs := OpenOrCreate(DataFile);
+    try
+      fs.Read(Sys, SizeOf(Sys));
+      while fs.Read(Line, SizeOf(Line)) = SizeOf(Line) do
       begin
-        Found := True;
-        Break;
+        if Line.Number = usLine then
+        begin
+          Found := True;
+          Break;
+        end;
       end;
+    finally
+      fs.Free;
     end;
-    FileClose(fd);
+  except
   end;
 
   StrCopy(LastCaller, Sys.LastCaller);
@@ -214,7 +216,7 @@ end;
 
 procedure TStatistics.Update;
 var
-  fd: LongInt;
+  fs: TFileStream;
   Found: Boolean;
 begin
   Found := False;
@@ -225,39 +227,38 @@ begin
   Sys.MailCalls := TotalMailCalls;
   Sys.TodayCalls := TotalTodayCalls;
 
-  fd := FileOpen(StrPas(DataFile), fmOpenReadWrite or fmShareDenyNone);
-  if fd = -1 then
-    fd := FileCreate(StrPas(DataFile));
-
-  if fd <> -1 then
-  begin
-    FileWrite(fd, Sys, SizeOf(Sys));
-    while FileRead(fd, Line, SizeOf(Line)) = SizeOf(Line) do
-    begin
-      if Line.Number = LineNumber then
+  try
+    fs := OpenOrCreate(DataFile);
+    try
+      fs.Write(Sys, SizeOf(Sys));
+      while fs.Read(Line, SizeOf(Line)) = SizeOf(Line) do
       begin
-        Found := True;
-        Break;
+        if Line.Number = LineNumber then
+        begin
+          Found := True;
+          Break;
+        end;
       end;
+
+      FillChar(Line, SizeOf(Line), 0);
+
+      Line.Number := LineNumber;
+      StrCopy(Line.LastCaller, LineLastCaller);
+      Line.Calls := Calls;
+      Line.MailCalls := MailCalls;
+      Line.TodayCalls := TodayCalls;
+      Line.Status := Status;
+      StrCopy(Line.User, User);
+      StrCopy(Line.From_, From_);
+      StrCopy(Line.Action, Action);
+
+      if Found then
+        fs.Seek(fs.Position - SizeOf(Line), soFromBeginning);
+      fs.Write(Line, SizeOf(Line));
+    finally
+      fs.Free;
     end;
-
-    FillChar(Line, SizeOf(Line), 0);
-
-    Line.Number := LineNumber;
-    StrCopy(Line.LastCaller, LineLastCaller);
-    Line.Calls := Calls;
-    Line.MailCalls := MailCalls;
-    Line.TodayCalls := TodayCalls;
-    Line.Status := Status;
-    StrCopy(Line.User, User);
-    StrCopy(Line.From_, From_);
-    StrCopy(Line.Action, Action);
-
-    if Found then
-      FileSeek(fd, FileSeek(fd, 0, 1) - SizeOf(Line), 0);
-    FileWrite(fd, Line, SizeOf(Line));
-
-    FileClose(fd);
+  except
   end;
 end;
 

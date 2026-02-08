@@ -14,7 +14,7 @@ unit OkFile;
 interface
 
 uses
-  SysUtils, Defs, Struc;
+  SysUtils, Classes, Defs, Struc;
 
 type
   TOkFile = class
@@ -38,35 +38,37 @@ type
     procedure Update;
 
   private
-    fdDat:    LongInt;
-    DataFile: array[0..127] of Char;
+    fdDat:    TFileStream;
+    DataFile: String;
   end;
 
 implementation
 
+function OpenOrCreate(const FileName: String): TFileStream;
+begin
+  if FileExists(FileName) then
+    Result := TFileStream.Create(FileName, fmOpenReadWrite or fmShareDenyNone)
+  else
+    Result := TFileStream.Create(FileName, fmCreate);
+end;
+
 constructor TOkFile.Create;
 begin
   inherited Create;
-  fdDat := -1;
-  StrCopy(DataFile, 'okfile.dat');
+  fdDat := nil;
+  DataFile := 'okfile.dat';
 end;
 
 constructor TOkFile.Create(pszDataPath: PChar);
 begin
   inherited Create;
-  fdDat := -1;
-  StrCopy(DataFile, pszDataPath);
-  StrCat(DataFile, 'okfile.dat');
-  AdjustPath(DataFile);
+  fdDat := nil;
+  DataFile := IncludeTrailingPathDelimiter(StrPas(pszDataPath)) + 'okfile.dat';
 end;
 
 destructor TOkFile.Destroy;
 begin
-  if fdDat <> -1 then
-  begin
-    FileClose(fdDat);
-    fdDat := -1;
-  end;
+  FreeAndNil(fdDat);
   inherited Destroy;
 end;
 
@@ -77,15 +79,13 @@ var
 begin
   DoClose := False;
 
-  if fdDat = -1 then
+  if fdDat = nil then
   begin
-    fdDat := FileOpen(StrPas(DataFile), fmOpenReadWrite);
-    if fdDat = -1 then
-      fdDat := FileCreate(StrPas(DataFile));
+    fdDat := OpenOrCreate(DataFile);
     DoClose := True;
   end;
 
-  if fdDat <> -1 then
+  if fdDat <> nil then
   begin
     FillChar(ok, SizeOf(ok), 0);
     ok.Size := SizeOf(ok);
@@ -96,39 +96,27 @@ begin
     ok.Known := Known;
     ok.Protected_ := Protected_;
 
-    FileSeek(fdDat, 0, 2);  { SEEK_END }
-    FileWrite(fdDat, ok, SizeOf(ok));
+    fdDat.Seek(0, soFromEnd);
+    fdDat.Write(ok, SizeOf(ok));
   end;
 
-  if DoClose and (fdDat <> -1) then
-  begin
-    FileClose(fdDat);
-    fdDat := -1;
-  end;
+  if DoClose then
+    FreeAndNil(fdDat);
 end;
 
 procedure TOkFile.DeleteAll;
 begin
-  if fdDat <> -1 then
-  begin
-    FileClose(fdDat);
-    fdDat := -1;
-  end;
-
-  SysUtils.DeleteFile(StrPas(DataFile));
+  FreeAndNil(fdDat);
+  SysUtils.DeleteFile(DataFile);
 end;
 
 function TOkFile.First: Word;
 begin
-  if fdDat = -1 then
-  begin
-    fdDat := FileOpen(StrPas(DataFile), fmOpenReadWrite);
-    if fdDat = -1 then
-      fdDat := FileCreate(StrPas(DataFile));
-  end;
+  if fdDat = nil then
+    fdDat := OpenOrCreate(DataFile);
 
-  if fdDat <> -1 then
-    FileSeek(fdDat, 0, 0);  { SEEK_SET }
+  if fdDat <> nil then
+    fdDat.Seek(0, soFromBeginning);
 
   Result := Next;
 end;
@@ -139,9 +127,9 @@ var
 begin
   Result := 0;
 
-  if fdDat <> -1 then
+  if fdDat <> nil then
   begin
-    if FileRead(fdDat, ok, SizeOf(ok)) = SizeOf(ok) then
+    if fdDat.Read(ok, SizeOf(ok)) = SizeOf(ok) then
     begin
       StrCopy(Name, ok.Name);
       StrCopy(Path, ok.Path);
@@ -163,18 +151,16 @@ begin
   Result := 0;
   DoClose := False;
 
-  if fdDat = -1 then
+  if fdDat = nil then
   begin
-    fdDat := FileOpen(StrPas(DataFile), fmOpenReadWrite);
-    if fdDat = -1 then
-      fdDat := FileCreate(StrPas(DataFile));
+    fdDat := OpenOrCreate(DataFile);
     DoClose := True;
   end;
 
-  if fdDat <> -1 then
+  if fdDat <> nil then
   begin
-    FileSeek(fdDat, 0, 0);
-    while FileRead(fdDat, ok, SizeOf(ok)) = SizeOf(ok) do
+    fdDat.Seek(0, soFromBeginning);
+    while fdDat.Read(ok, SizeOf(ok)) = SizeOf(ok) do
     begin
       if stricmp(ok.Name, pszName) = 0 then
       begin
@@ -191,20 +177,17 @@ begin
     end;
   end;
 
-  if DoClose and (fdDat <> -1) then
-  begin
-    FileClose(fdDat);
-    fdDat := -1;
-  end;
+  if DoClose then
+    FreeAndNil(fdDat);
 end;
 
 procedure TOkFile.Update;
 var
   ok: OKFILE;
 begin
-  if fdDat <> -1 then
+  if fdDat <> nil then
   begin
-    FileSeek(fdDat, FileSeek(fdDat, 0, 1) - SizeOf(ok), 0);
+    fdDat.Seek(fdDat.Position - SizeOf(ok), soFromBeginning);
     ok.Size := SizeOf(ok);
     StrCopy(ok.Name, Name);
     StrCopy(ok.Path, Path);
@@ -212,7 +195,7 @@ begin
     ok.Normal := Normal;
     ok.Known := Known;
     ok.Protected_ := Protected_;
-    FileWrite(fdDat, ok, SizeOf(ok));
+    fdDat.Write(ok, SizeOf(ok));
   end;
 end;
 
