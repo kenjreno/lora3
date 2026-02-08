@@ -271,7 +271,7 @@ procedure TPipe.BufferByte(AByte: Byte);
 begin
   TxBuffer[TxBytes] := AByte;
   Inc(TxBytes);
-  if TxBytes >= TSIZE then
+  if TxBytes >= ComBase.TSIZE then
     UnbufferBytes;
 end;
 
@@ -282,7 +282,7 @@ begin
     TxBuffer[TxBytes] := ABytes^;
     Inc(ABytes);
     Inc(TxBytes);
-    if TxBytes >= TSIZE then
+    if TxBytes >= ComBase.TSIZE then
       UnbufferBytes;
     Dec(ALen);
   end;
@@ -566,7 +566,7 @@ begin
   hFileCtl := CreateNamedPipe(pszCtlName,
     PIPE_ACCESS_DUPLEX or FILE_FLAG_WRITE_THROUGH,
     PIPE_TYPE_BYTE or PIPE_READMODE_BYTE or PIPE_NOWAIT,
-    usInstances, TSIZE * 2, RSIZE, 1000, nil);
+    usInstances, ComBase.TSIZE * 2, ComBase.RSIZE, 1000, nil);
 
   hFile := INVALID_HANDLE_VALUE;
   if StrLComp(pszPipeName, '\\.', 3) <> 0 then
@@ -577,7 +577,7 @@ begin
   hFile := CreateNamedPipe(pszPipeName,
     PIPE_ACCESS_DUPLEX or FILE_FLAG_WRITE_THROUGH,
     PIPE_TYPE_BYTE or PIPE_READMODE_BYTE or PIPE_NOWAIT,
-    usInstances, TSIZE * 2, RSIZE, 1000, nil);
+    usInstances, ComBase.TSIZE * 2, ComBase.RSIZE, 1000, nil);
   if hFile <> INVALID_HANDLE_VALUE then
     Result := 1;
   {$ENDIF}
@@ -590,7 +590,7 @@ begin
     pszCtlName := TempFile;
   end;
   if DosCreateNPipe(pszCtlName, @hFileCtl, NP_ACCESS_DUPLEX,
-    NP_NOWAIT or usInstances, TSIZE, RSIZE, 1000) <> 0 then
+    NP_NOWAIT or usInstances, ComBase.TSIZE, ComBase.RSIZE, 1000) <> 0 then
   begin
     hFileCtl := 0;
     CtlConnect := 1;
@@ -603,7 +603,7 @@ begin
     pszPipeName := TempFile;
   end;
   if DosCreateNPipe(pszPipeName, @hFile, NP_ACCESS_DUPLEX,
-    NP_NOWAIT or usInstances, TSIZE, RSIZE, 1000) = 0 then
+    NP_NOWAIT or usInstances, ComBase.TSIZE, ComBase.RSIZE, 1000) = 0 then
     Result := 1;
   {$ENDIF}
 

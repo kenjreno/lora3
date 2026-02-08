@@ -90,7 +90,7 @@ begin
   Result := 0;
   if RxBytes = 0 then
   begin
-    i := FpRead(tty_fd, @RxBuffer[0], RSIZE);
+    i := FpRead(tty_fd, @RxBuffer[0], ComBase.RSIZE);
     if i > 0 then
     begin
       RxBytes := Word(i);

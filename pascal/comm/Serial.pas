@@ -169,7 +169,7 @@ procedure TSerial.BufferByte(AByte: Byte);
 begin
   TxBuffer[TxBytes] := AByte;
   Inc(TxBytes);
-  if TxBytes >= TSIZE then
+  if TxBytes >= ComBase.TSIZE then
     UnbufferBytes;
 end;
 
@@ -180,17 +180,17 @@ begin
   if (ALen > 0) and (EndRun = 0) then
   begin
     repeat
-      if TxBytes < TSIZE then
+      if TxBytes < ComBase.TSIZE then
       begin
         ToCopy := ALen;
-        if ToCopy > TSIZE - TxBytes then
-          ToCopy := TSIZE - TxBytes;
+        if ToCopy > ComBase.TSIZE - TxBytes then
+          ToCopy := ComBase.TSIZE - TxBytes;
         Move(ABytes^, TxBuffer[TxBytes], ToCopy);
         Inc(ABytes, ToCopy);
         Inc(TxBytes, ToCopy);
         Dec(ALen, ToCopy);
       end;
-      if TxBytes >= TSIZE then
+      if TxBytes >= ComBase.TSIZE then
         UnbufferBytes;
     until (ALen = 0) or (EndRun <> 0);
   end;
@@ -228,7 +228,7 @@ begin
     begin
       if FSer.CanRead(0) then
       begin
-        i := FSer.RecvBufferEx(@RxBuffer[0], RSIZE, 0);
+        i := FSer.RecvBufferEx(@RxBuffer[0], ComBase.RSIZE, 0);
         if i > 0 then
         begin
           RxBytes := Word(i);
@@ -392,7 +392,7 @@ begin
     if RxBytes = 0 then
     begin
       repeat
-        i := FSer.RecvBufferEx(@RxBuffer[0], RSIZE, 100);
+        i := FSer.RecvBufferEx(@RxBuffer[0], ComBase.RSIZE, 100);
         if i > 0 then
         begin
           RxBytes := Word(i);
@@ -446,7 +446,7 @@ begin
     if RxBytes = 0 then
     begin
       repeat
-        i := FSer.RecvBufferEx(@RxBuffer[0], RSIZE, 100);
+        i := FSer.RecvBufferEx(@RxBuffer[0], ComBase.RSIZE, 100);
         if i > 0 then
         begin
           RxBytes := Word(i);
