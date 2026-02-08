@@ -17,6 +17,8 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
   FreePascal conversion of tcpip.cpp - TTcpip class
+  Uses Synapse blcksock for cross-platform TCP/UDP (Windows/Linux/OS2).
+  DOS uses Waterloo TCP (WATTCP) - stubbed for now.
 }
 
 unit LoraTcpip;
@@ -27,7 +29,10 @@ unit LoraTcpip;
 interface
 
 uses
-  SysUtils, BaseUnix, Unix, Sockets,
+  SysUtils,
+  {$IFNDEF MSDOS}
+  blcksock, synsock, synautil,
+  {$ENDIF}
   LoraDefs, LoraComBase;
 
 type
@@ -49,7 +54,7 @@ type
     procedure ClearInbound; override;
     procedure ClosePort;
     function  ConnectServer(pszServerName: PChar; usPort: Word): Word;
-    function  Initialize(usPort: Word; usSocket: Word = 0; usProtocol: Word = IPPROTO_TCP): Word;
+    function  Initialize(usPort: Word; usSocket: Word = 0; usProtocol: Word = 0): Word;
     function  ReadByte: Byte; override;
     function  ReadBytes(ABytes: PByte; ALen: Word): Word; override;
     procedure SendByte(AByte: Byte); override;
@@ -68,21 +73,21 @@ type
     procedure SetTime(ASeconds: LongWord); override;
 
   private
-    Sock:         LongInt;
-    Accepted:     LongInt;
-    LSock:        LongInt;
+    {$IFNDEF MSDOS}
+    FSock:        TTCPBlockSocket;   { Connected/accepted data socket }
+    FListenSock:  TTCPBlockSocket;   { Listening socket for TCP server }
+    FUDPSock:     TUDPBlockSocket;   { UDP socket for packet operations }
+    {$ENDIF}
     fCarrierDown: Word;
     RxPosition:   Word;
-    udp_client:   TInetSockAddr;
+    IsUDP:        Boolean;
   end;
 
-implementation
-
-uses
-  Errors;
-
 const
-  FIONBIO = $5421;
+  PROTO_TCP = 0;
+  PROTO_UDP = 1;
+
+implementation
 
 constructor TTcpip.Create;
 begin
@@ -92,9 +97,12 @@ begin
   TxBytes := 0;
   RxBytes := 0;
   RxPosition := 0;
-  LSock := 0;
-  Sock := 0;
-  Accepted := 0;
+  IsUDP := False;
+  {$IFNDEF MSDOS}
+  FSock := nil;
+  FListenSock := nil;
+  FUDPSock := nil;
+  {$ENDIF}
 end;
 
 destructor TTcpip.Destroy;
@@ -130,33 +138,41 @@ begin
 end;
 
 function TTcpip.BytesReady: Word;
+{$IFNDEF MSDOS}
 var
   i: LongInt;
+{$ENDIF}
 begin
   Result := 0;
-  if (Sock <> 0) and (fCarrierDown = 0) and (EndRun = 0) then
+
+  {$IFNDEF MSDOS}
+  if (FSock <> nil) and (fCarrierDown = 0) and (EndRun = 0) then
   begin
     if RxBytes <> 0 then
       Result := 1
     else
     begin
-      i := fpRecv(Sock, @RxBuffer[0], RSIZE, 0);
-      if i = 0 then
-        fCarrierDown := 1
-      else if i = -1 then
+      if FSock.CanRead(0) then
       begin
-        RxBytes := 0;
-        if (fpGetErrno <> ESysEWOULDBLOCK) and (fpGetErrno <> ESysEAGAIN) then
-          fCarrierDown := 1;
-      end
-      else
-      begin
-        RxBytes := Word(i);
-        RxPosition := 0;
-        Result := 1;
+        i := FSock.RecvBufferEx(@RxBuffer[0], RSIZE, 0);
+        if i = 0 then
+          fCarrierDown := 1
+        else if i < 0 then
+        begin
+          RxBytes := 0;
+          if FSock.LastError <> WSAEWOULDBLOCK then
+            fCarrierDown := 1;
+        end
+        else
+        begin
+          RxBytes := Word(i);
+          RxPosition := 0;
+          Result := 1;
+        end;
       end;
     end;
   end;
+  {$ENDIF}
 end;
 
 function TTcpip.Carrier: Word;
@@ -178,137 +194,157 @@ end;
 
 procedure TTcpip.ClosePort;
 begin
-  if Sock <> 0 then
+  {$IFNDEF MSDOS}
+  if FSock <> nil then
   begin
-    FpClose(Sock);
-    Sock := 0;
+    FSock.CloseSocket;
+    FSock.Free;
+    FSock := nil;
   end;
-  if LSock <> 0 then
+  if FListenSock <> nil then
   begin
-    FpClose(LSock);
-    LSock := 0;
+    FListenSock.CloseSocket;
+    FListenSock.Free;
+    FListenSock := nil;
   end;
+  if FUDPSock <> nil then
+  begin
+    FUDPSock.CloseSocket;
+    FUDPSock.Free;
+    FUDPSock := nil;
+  end;
+  {$ENDIF}
 end;
 
 function TTcpip.ConnectServer(pszServerName: PChar; usPort: Word): Word;
+{$IFNDEF MSDOS}
 var
-  i: LongInt;
-  namelen: TSockLen;
-  hostnm: PHostEnt;
-  server, sock_addr: TInetSockAddr;
+  LocalIP: String;
+  Parts: array[0..3] of Byte;
+{$ENDIF}
 begin
   Result := 0;
 
-  server.sin_family := AF_INET;
-  server.sin_port := htons(usPort);
-
-  hostnm := GetHostByName(pszServerName);
-  if hostnm = nil then
+  {$IFNDEF MSDOS}
+  FSock := TTCPBlockSocket.Create;
+  FSock.CreateSocket;
+  if FSock.LastError = 0 then
   begin
-    fCarrierDown := 1;
-    Exit;
-  end;
-  server.sin_addr.s_addr := PLongWord(hostnm^.h_addr_list^)^;
-
-  Sock := fpSocket(AF_INET, SOCK_STREAM, 0);
-  if Sock >= 0 then
-  begin
-    if fpConnect(Sock, @server, SizeOf(server)) >= 0 then
+    FSock.Connect(StrPas(pszServerName), IntToStr(usPort));
+    if FSock.LastError = 0 then
     begin
-      i := 1;
-      FpIOCtl(Sock, FIONBIO, @i);
+      FSock.NonBlockMode := True;
 
-      namelen := SizeOf(TInetSockAddr);
-      fpGetSockName(Sock, @sock_addr, @namelen);
-      HostID := (sock_addr.sin_addr.s_addr and $FF000000) shr 24;
-      HostID := HostID or ((sock_addr.sin_addr.s_addr and $00FF0000) shr 8);
-      HostID := HostID or ((sock_addr.sin_addr.s_addr and $0000FF00) shl 8);
-      HostID := HostID or ((sock_addr.sin_addr.s_addr and $000000FF) shl 24);
+      { Get local IP for HostID }
+      LocalIP := FSock.GetLocalSinIP;
+      StrPCopy(HostIP, LocalIP);
+
+      { Parse IP into HostID (network byte order) }
+      HostID := StrToHostAddr(LocalIP).s_addr;
 
       Result := 1;
     end;
   end;
 
   if Result = 0 then
+  begin
     fCarrierDown := 1;
+    if FSock <> nil then
+    begin
+      FSock.Free;
+      FSock := nil;
+    end;
+  end;
+  {$ENDIF}
 end;
 
 function TTcpip.Initialize(usPort: Word; usSocket: Word; usProtocol: Word): Word;
+{$IFNDEF MSDOS}
 var
-  i: LongInt;
-  socktype: LongInt;
-  server: TInetSockAddr;
-  hid: LongWord;
+  LocalIP: String;
+{$ENDIF}
 begin
   Result := 0;
 
-  hid := fpGetHostID;
-  HostID := (hid and $00FF0000) shl 8;
-  HostID := HostID or ((hid and $FF000000) shr 8);
-  HostID := HostID or ((hid and $000000FF) shl 8);
-  HostID := HostID or ((hid and $0000FF00) shr 8);
+  {$IFNDEF MSDOS}
+  { Get local host IP }
+  LocalIP := ResolveIPToName(LocalHostName);
+  if LocalIP = '' then
+    LocalIP := '127.0.0.1';
+  StrPCopy(HostIP, LocalIP);
+  HostID := StrToHostAddr(LocalIP).s_addr;
 
-  StrFmt(HostIP, '%d.%d.%d.%d', [
-    (HostID and $FF000000) shr 24,
-    (HostID and $FF0000) shr 16,
-    (HostID and $FF00) shr 8,
-    HostID and $FF
-  ]);
+  IsUDP := (usProtocol = PROTO_UDP);
 
   if usSocket = 0 then
   begin
-    socktype := SOCK_STREAM;
-    if usProtocol = IPPROTO_UDP then
-      socktype := SOCK_DGRAM;
-
-    LSock := fpSocket(AF_INET, socktype, usProtocol);
-    if LSock >= 0 then
+    if IsUDP then
     begin
-      FillChar(server, SizeOf(server), 0);
-      server.sin_family := AF_INET;
-      server.sin_port := htons(usPort);
-      server.sin_addr.s_addr := 0;
-
-      if fpBind(LSock, @server, SizeOf(server)) >= 0 then
+      { UDP mode }
+      FUDPSock := TUDPBlockSocket.Create;
+      FUDPSock.CreateSocket;
+      if FUDPSock.LastError = 0 then
       begin
-        if usProtocol = IPPROTO_TCP then
+        FUDPSock.Bind('0.0.0.0', IntToStr(usPort));
+        if FUDPSock.LastError = 0 then
         begin
-          if fpListen(LSock, 1) >= 0 then
+          FUDPSock.NonBlockMode := True;
+          Result := 1;
+        end;
+      end;
+    end
+    else
+    begin
+      { TCP server mode - create listening socket }
+      FListenSock := TTCPBlockSocket.Create;
+      FListenSock.CreateSocket;
+      if FListenSock.LastError = 0 then
+      begin
+        FListenSock.Bind('0.0.0.0', IntToStr(usPort));
+        if FListenSock.LastError = 0 then
+        begin
+          FListenSock.Listen;
+          if FListenSock.LastError = 0 then
           begin
-            Sock := 0;
+            FListenSock.NonBlockMode := True;
             Result := 1;
           end;
-        end
-        else
-          Result := 1;
+        end;
       end;
     end;
   end
   else
   begin
-    Sock := usSocket;
-    i := 1;
-    FpIOCtl(Sock, FIONBIO, @i);
+    { Use existing socket handle }
+    FSock := TTCPBlockSocket.Create;
+    FSock.Socket := usSocket;
+    FSock.NonBlockMode := True;
+    FSock.GetSins;
     Result := 1;
   end;
+  {$ENDIF}
 end;
 
 function TTcpip.ReadByte: Byte;
+{$IFNDEF MSDOS}
 var
   i: LongInt;
+{$ENDIF}
 begin
   Result := 0;
-  if Sock <> 0 then
+
+  {$IFNDEF MSDOS}
+  if FSock <> nil then
   begin
     while (RxBytes = 0) and (EndRun = 0) and (fCarrierDown = 0) do
     begin
-      i := fpRecv(Sock, @RxBuffer[0], RSIZE, 0);
+      i := FSock.RecvBufferEx(@RxBuffer[0], RSIZE, 100);
       if i = 0 then
         fCarrierDown := 1
-      else if i = -1 then
+      else if i < 0 then
       begin
         RxBytes := 0;
-        if (fpGetErrno <> ESysEWOULDBLOCK) and (fpGetErrno <> ESysEAGAIN) then
+        if FSock.LastError <> WSAEWOULDBLOCK then
           fCarrierDown := 1;
       end
       else
@@ -318,32 +354,37 @@ begin
       end;
     end;
 
-    if (EndRun = 0) and (fCarrierDown = 0) then
+    if (EndRun = 0) and (fCarrierDown = 0) and (RxBytes > 0) then
     begin
       Result := RxBuffer[RxPosition];
       Inc(RxPosition);
       Dec(RxBytes);
     end;
   end;
+  {$ENDIF}
 end;
 
 function TTcpip.ReadBytes(ABytes: PByte; ALen: Word): Word;
+{$IFNDEF MSDOS}
 var
   i: LongInt;
+{$ENDIF}
   Max: Word;
 begin
   Max := 0;
-  if Sock <> 0 then
+
+  {$IFNDEF MSDOS}
+  if FSock <> nil then
   begin
     while (RxBytes = 0) and (EndRun = 0) and (fCarrierDown = 0) do
     begin
-      i := fpRecv(Sock, @RxBuffer[0], RSIZE, 0);
+      i := FSock.RecvBufferEx(@RxBuffer[0], RSIZE, 100);
       if i = 0 then
         fCarrierDown := 1
-      else if i = -1 then
+      else if i < 0 then
       begin
         RxBytes := 0;
-        if (fpGetErrno <> ESysEWOULDBLOCK) and (fpGetErrno <> ESysEAGAIN) then
+        if FSock.LastError <> WSAEWOULDBLOCK then
           fCarrierDown := 1;
       end
       else
@@ -353,7 +394,7 @@ begin
       end;
     end;
 
-    if (EndRun = 0) and (fCarrierDown = 0) then
+    if (EndRun = 0) and (fCarrierDown = 0) and (RxBytes > 0) then
     begin
       Max := ALen;
       if Max > RxBytes then
@@ -363,75 +404,107 @@ begin
       Inc(RxPosition, Max);
     end;
   end;
+  {$ENDIF}
+
   Result := Max;
 end;
 
 function TTcpip.PeekPacket(lpBuffer: Pointer; usSize: Word): Word;
-var
-  namelen: TSockLen;
 begin
-  namelen := SizeOf(udp_client);
-  if fpRecvFrom(LSock, lpBuffer, usSize, MSG_PEEK, @udp_client, @namelen) > 0 then
-    Result := 1
-  else
-    Result := 0;
+  Result := 0;
+  {$IFNDEF MSDOS}
+  if FUDPSock <> nil then
+  begin
+    if FUDPSock.CanRead(0) then
+    begin
+      if FUDPSock.PeekBuffer(lpBuffer, usSize) > 0 then
+        Result := 1;
+    end;
+  end;
+  {$ENDIF}
 end;
 
 function TTcpip.GetPacket(lpBuffer: Pointer; usSize: Word): Word;
-var
-  namelen: TSockLen;
 begin
-  namelen := SizeOf(udp_client);
-  Result := Word(fpRecvFrom(LSock, lpBuffer, usSize, 0, @udp_client, @namelen));
+  Result := 0;
+  {$IFNDEF MSDOS}
+  if FUDPSock <> nil then
+  begin
+    Result := Word(FUDPSock.RecvBuffer(lpBuffer, usSize));
+  end;
+  {$ENDIF}
 end;
 
 function TTcpip.SendPacket(lpBuffer: Pointer; usSize: Word): Word;
 begin
-  Result := Word(fpSendTo(LSock, lpBuffer, usSize, 0, @udp_client, SizeOf(udp_client)));
+  Result := 0;
+  {$IFNDEF MSDOS}
+  if FUDPSock <> nil then
+  begin
+    Result := Word(FUDPSock.SendBuffer(lpBuffer, usSize));
+  end;
+  {$ENDIF}
 end;
 
 function TTcpip.WaitClient: Word;
+{$IFNDEF MSDOS}
 var
-  i: LongInt;
-  s: LongInt;
-  namelen: TSockLen;
-  client: TInetSockAddr;
+  NewSock: TSocket;
+  NewTCP: TTCPBlockSocket;
+{$ENDIF}
 begin
-  Sock := 0;
+  Result := 0;
 
-  namelen := SizeOf(client);
-  s := fpAccept(LSock, @client, @namelen);
-  if s > 0 then
+  {$IFNDEF MSDOS}
+  if FListenSock <> nil then
   begin
-    Sock := s;
-    StrFmt(ClientIP, '%d.%d.%d.%d', [
-      client.sin_addr.s_addr and $FF,
-      (client.sin_addr.s_addr and $FF00) shr 8,
-      (client.sin_addr.s_addr and $FF0000) shr 16,
-      (client.sin_addr.s_addr and $FF000000) shr 24
-    ]);
-    StrCopy(ClientName, ClientIP);
-    i := 1;
-    FpIOCtl(Sock, FIONBIO, @i);
-  end;
+    if FListenSock.CanRead(0) then
+    begin
+      NewSock := FListenSock.Accept;
+      if FListenSock.LastError = 0 then
+      begin
+        { Close any previous connection }
+        if FSock <> nil then
+        begin
+          FSock.CloseSocket;
+          FSock.Free;
+        end;
 
-  Result := Word(Sock);
+        FSock := TTCPBlockSocket.Create;
+        FSock.Socket := NewSock;
+        FSock.GetSins;
+        FSock.NonBlockMode := True;
+
+        { Get client info }
+        StrPCopy(ClientIP, FSock.GetRemoteSinIP);
+        StrCopy(ClientName, ClientIP);
+
+        Result := Word(NewSock);
+      end;
+    end;
+  end;
+  {$ENDIF}
 end;
 
 procedure TTcpip.SendByte(AByte: Byte);
 begin
-  if (Sock <> 0) and (fCarrierDown = 0) and (EndRun = 0) then
-    fpSend(Sock, @AByte, 1, 0);
+  {$IFNDEF MSDOS}
+  if (FSock <> nil) and (fCarrierDown = 0) and (EndRun = 0) then
+    FSock.SendByte(AByte);
+  {$ENDIF}
 end;
 
 procedure TTcpip.SendBytes(ABytes: PByte; ALen: Word);
+{$IFNDEF MSDOS}
 var
   i: LongInt;
+{$ENDIF}
 begin
-  if (Sock <> 0) and (fCarrierDown = 0) and (EndRun = 0) then
+  {$IFNDEF MSDOS}
+  if (FSock <> nil) and (fCarrierDown = 0) and (EndRun = 0) then
   begin
     repeat
-      i := fpSend(Sock, ABytes, ALen, 0);
+      i := FSock.SendBuffer(ABytes, ALen);
       if i > 0 then
       begin
         Dec(ALen, Word(i));
@@ -439,27 +512,30 @@ begin
       end
       else if i < 0 then
       begin
-        if (fpGetErrno <> ESysEWOULDBLOCK) and (fpGetErrno <> ESysENOBUFS) then
+        if FSock.LastError <> WSAEWOULDBLOCK then
           fCarrierDown := 1;
       end;
     until (ALen = 0) or (EndRun <> 0) or (Carrier = 0);
   end;
+  {$ENDIF}
 end;
 
 procedure TTcpip.UnbufferBytes;
+{$IFNDEF MSDOS}
 var
   Written: LongInt;
   p: PByte;
-  flag: LongInt;
+{$ENDIF}
 begin
-  while (Sock <> 0) and (fCarrierDown = 0) and (EndRun = 0) and (TxBytes > 0) do
+  {$IFNDEF MSDOS}
+  if (FSock <> nil) and (fCarrierDown = 0) and (EndRun = 0) and (TxBytes > 0) then
   begin
-    flag := 0;
-    FpIOCtl(Sock, FIONBIO, @flag);
+    { Set blocking mode for reliable flush }
+    FSock.NonBlockMode := False;
 
     p := @TxBuffer[0];
     repeat
-      Written := fpSend(Sock, p, TxBytes, 0);
+      Written := FSock.SendBuffer(p, TxBytes);
       if Written > 0 then
       begin
         Inc(p, Written);
@@ -467,14 +543,15 @@ begin
       end
       else if Written < 0 then
       begin
-        if (fpGetErrno <> ESysEWOULDBLOCK) and (fpGetErrno <> ESysENOBUFS) then
+        if FSock.LastError <> WSAEWOULDBLOCK then
           fCarrierDown := 1;
       end;
     until (TxBytes = 0) or (EndRun <> 0) or (Carrier = 0);
 
-    flag := 1;
-    FpIOCtl(Sock, FIONBIO, @flag);
+    { Restore non-blocking mode }
+    FSock.NonBlockMode := True;
   end;
+  {$ENDIF}
 end;
 
 procedure TTcpip.SetName(AName: PChar);
