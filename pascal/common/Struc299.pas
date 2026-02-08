@@ -79,6 +79,65 @@ const
 
   MAXCOST        = 7;
 
+  { Message attribute flags (16-bit) }
+  MSGPRIVATE     = $0001;
+  MSGCRASH       = $0002;
+  MSGREAD        = $0004;
+  MSGSENT        = $0008;
+  MSGFILE        = $0010;
+  MSGTRANSIT     = $0020;
+  MSGORPHAN      = $0040;
+  MSGKILL        = $0080;
+  MSGLOCAL       = $0100;
+  MSGHOLD        = $0200;
+  MSGXX2         = $0400;
+  MSGFRQ         = $0800;
+  MSGRRQ         = $1000;
+  MSGCPT         = $2000;
+  MSGARQ         = $4000;
+  MSGURQ         = $8000;
+  { Extended attribute flags (32-bit) }
+  MSGSCANNED     = $00010000;
+  MSGUID         = $00020000;
+
+  { Squish frame header ID and types }
+  SQHDRID        = $AFAE4453;
+  FRAME_NORMAL   = 0;
+  FRAME_FREE     = 1;
+  FRAME_RLE      = 2;
+  FRAME_LZW      = 3;
+
+  { XMSG field sizes }
+  XMSG_FROM_SIZE = 36;
+  XMSG_TO_SIZE   = 36;
+  XMSG_SUBJ_SIZE = 72;
+  MAX_REPLY      = 9;
+
+  { Adept message flags }
+  MSGDELETED     = $8000;
+
+  { Hudson message attributes (MsgAttr byte) }
+  HUD_RECKILL    = $01;
+  HUD_NETMAIL    = $04;
+  HUD_PRIVATE    = $08;
+  HUD_RECEIVED   = $10;
+  HUD_LOCAL      = $60;   { 32+64 }
+
+  { Hudson network attributes (NetAttr byte) }
+  HUD_KILL       = $01;
+  HUD_SENT       = $02;
+  HUD_FILE       = $04;
+  HUD_CRASH      = $08;
+  HUD_FRQ        = $10;
+  HUD_ARQ        = $20;
+  HUD_CPT        = $40;
+
+  { Dupe checking }
+  MAX_DUPES      = 1000;
+
+  { Maximum line length for text reading }
+  MAX_LINE_LENGTH = 2048;
+
 type
   { Index file for message and file areas }
   PINDEX = ^INDEX;
@@ -773,6 +832,281 @@ type
     DenyFlags:   LongWord;
     Automatic:   Byte;
     FirstTime:   Byte;
+  end;
+
+  { Message date/time structure }
+  PMDATE = ^MDATE;
+  MDATE = packed record
+    Day:    Byte;
+    Month:  Byte;
+    Year:   Word;
+    Hour:   Byte;
+    Minute: Byte;
+    Second: Byte;
+  end;
+
+  { Squish base header }
+  PSQBASE = ^SQBASE;
+  SQBASE = packed record
+    Len:           Word;
+    Rsvd1:         Word;
+    NumMsg:        LongWord;
+    HighMsg:       LongWord;
+    SkipMsg:       LongWord;
+    HighWater:     LongWord;
+    Uid:           LongWord;
+    Base:          array[0..79] of Char;
+    BeginFrame:    LongWord;
+    LastFrame:     LongWord;
+    FreeFrame:     LongWord;
+    LastFreeFrame: LongWord;
+    EndFrame:      LongWord;
+    MaxMsg:        LongWord;
+    KeepDays:      Word;
+    SzSqhdr:       Word;
+    Rsvd2:         array[0..123] of Byte;
+  end;
+
+  { Squish frame header }
+  PSQHDR = ^SQHDR;
+  SQHDR = packed record
+    Id:          LongWord;
+    NextFrame:   LongWord;
+    PrevFrame:   LongWord;
+    FrameLength: LongWord;
+    MsgLength:   LongWord;
+    CLen:        LongWord;
+    FrameType:   Word;
+    Rsvd:        Word;
+  end;
+
+  { Squish node address }
+  PNADDR = ^NADDR;
+  NADDR = packed record
+    Zone:  Word;
+    Net:   Word;
+    Node:  Word;
+    Point: Word;
+  end;
+
+  { Squish extended message header }
+  PXMSG = ^XMSG;
+  XMSG = packed record
+    Attr:        LongWord;
+    From_:       array[0..XMSG_FROM_SIZE-1] of Char;
+    To_:         array[0..XMSG_TO_SIZE-1] of Char;
+    Subject_:    array[0..XMSG_SUBJ_SIZE-1] of Char;
+    Orig:        NADDR;
+    Dest:        NADDR;
+    DateWritten: LongWord;
+    DateArrived: LongWord;
+    UtcOfs:      SmallInt;
+    ReplyTo:     LongWord;
+    Replies:     array[0..MAX_REPLY-1] of LongWord;
+    MsgId:       LongWord;
+    FtscDate:    array[0..19] of Char;
+  end;
+
+  { Squish index entry }
+  PSQIDX = ^SQIDX;
+  SQIDX = packed record
+    Ofs:   LongWord;
+    MsgId: LongWord;
+    Hash:  LongWord;
+  end;
+
+  { FTS-0001 Type 2 packet header }
+  PPKT2HDR = ^PKT2HDR;
+  PKT2HDR = packed record
+    OrigNode:     Word;
+    DestNode:     Word;
+    Year:         Word;
+    Month:        Word;
+    Day:          Word;
+    Hour:         Word;
+    Minute:       Word;
+    Second:       Word;
+    Rate:         Word;
+    Version_:     Word;
+    OrigNet:      Word;
+    DestNet:      Word;
+    ProductL:     Byte;
+    Serial_:      Byte;
+    Password:     array[0..7] of Char;
+    OrigZone:     Word;
+    DestZone:     Word;
+    Auxnet:       Word;
+    CWValidation: Word;
+    ProductH:     Byte;
+    Revision:     Byte;
+    Capability:   Word;
+    OrigZone2:    Word;
+    DestZone2:    Word;
+    OrigPoint:    Word;
+    DestPoint:    Word;
+    Filler:       array[0..3] of Byte;
+  end;
+
+  { FSC-0045 Type 2.2 packet header }
+  PPKT22HDR = ^PKT22HDR;
+  PKT22HDR = packed record
+    OrigNode:   Word;
+    DestNode:   Word;
+    OrigPoint:  Word;
+    DestPoint:  Word;
+    Reserved:   array[0..7] of Char;
+    SubVersion: Word;
+    Version_:   Word;
+    OrigNet:    Word;
+    DestNet:    Word;
+    Product:    Byte;
+    Serial_:    Byte;
+    Password:   array[0..7] of Char;
+    OrigZone:   Word;
+    DestZone:   Word;
+    OrigDomain: array[0..7] of Char;
+    DestDomain: array[0..7] of Char;
+    Filler:     array[0..3] of Byte;
+  end;
+
+  { Packed message header within a packet }
+  PPKTMSGHDR = ^PKTMSGHDR;
+  PKTMSGHDR = packed record
+    Version_: Word;
+    OrigNode: Word;
+    DestNode: Word;
+    OrigNet:  Word;
+    DestNet:  Word;
+    Attrib:   Word;
+    Cost:     Word;
+  end;
+
+  { FidoNet *.MSG file header }
+  PFIDOMSG = ^FIDOMSG;
+  FIDOMSG = packed record
+    From_:     array[0..35] of Char;
+    To_:       array[0..35] of Char;
+    Subject_:  array[0..71] of Char;
+    Date_:     array[0..19] of Char;
+    TimesRead: Word;
+    DestNode:  Word;
+    OrigNode:  Word;
+    Cost:      Word;
+    OrigNet:   Word;
+    DestNet:   Word;
+    BinDate:   array[0..3] of Word;
+    Reply:     Word;
+    Attrib:    Word;
+    Up:        Word;
+  end;
+
+  { Adept message base data record }
+  PADEPTDATA = ^ADEPTDATA;
+  ADEPTDATA = packed record
+    MajorVersion: Char;
+    MinorVersion: Char;
+    StructLen:    Word;
+    from_:        array[0..59] of Char;
+    to_:          array[0..59] of Char;
+    subj:         array[0..69] of Char;
+    date_:        array[0..34] of Char;
+    indate:       array[0..3] of Char;
+    msgnum:       LongWord;
+    timesread:    LongWord;
+    timerecv:     LongWord;
+    length_:      LongWord;
+    start:        LongInt;
+    Extra1:       LongWord;
+    Extra2:       LongWord;
+    Extra3:       LongWord;
+    o_zone:       Word;
+    o_net:        Word;
+    o_node:       Word;
+    o_point:      Word;
+    d_zone:       Word;
+    d_net:        Word;
+    d_node:       Word;
+    d_point:      Word;
+    cost:         Word;
+    fflags:       Word;
+    xflags:       Word;
+    iflags:       LongWord;
+    oflags:       LongWord;
+  end;
+
+  { Adept message base index record }
+  PADEPTINDEXES = ^ADEPTINDEXES;
+  ADEPTINDEXES = packed record
+    to_:            SmallInt;
+    from_:          SmallInt;
+    subj:           SmallInt;
+    msgidcrc:       LongInt;
+    msgidserialno:  LongInt;
+    replycrc:       LongInt;
+    replyserialno:  LongInt;
+  end;
+
+  { Hudson message base info }
+  PHMSGINFO = ^HMSGINFO;
+  HMSGINFO = packed record
+    LowMsg:       Word;
+    HighMsg:      Word;
+    TotalMsgs:    Word;
+    TotalOnBoard: array[0..199] of Word;
+  end;
+
+  { Hudson message index }
+  PHMSGIDX = ^HMSGIDX;
+  HMSGIDX = packed record
+    MsgNum: Word;
+    Board:  Byte;
+  end;
+
+  { Hudson To-field index }
+  PHMSGTOIDX = ^HMSGTOIDX;
+  HMSGTOIDX = packed record
+    String_: array[0..35] of Char;
+  end;
+
+  { Hudson message header }
+  PHMSGHDR = ^HMSGHDR;
+  HMSGHDR = packed record
+    MsgNum:    Word;
+    PrevReply: Word;
+    NextReply: Word;
+    TimesRead: Word;
+    StartBlock: Word;
+    NumBlocks: Word;
+    DestNet:   Word;
+    DestNode:  Word;
+    OrigNet:   Word;
+    OrigNode:  Word;
+    DestZone:  Byte;
+    OrigZone:  Byte;
+    Cost:      Word;
+    MsgAttr:   Byte;
+    NetAttr:   Byte;
+    Board:     Byte;
+    Time_:     array[0..5] of Char;
+    Date_:     array[0..8] of Char;
+    WhoTo:     array[0..35] of Char;
+    WhoFrom:   array[0..35] of Char;
+    Subject_:  array[0..72] of Char;
+  end;
+
+  { Dupe checking data }
+  PDUPEDATA = ^DUPEDATA;
+  DUPEDATA = packed record
+    EchoTag:  array[0..63] of Char;
+    Position: Word;
+    Dupes:    array[0..MAX_DUPES-1] of LongWord;
+  end;
+
+  { Dupe checking index }
+  PDUPEIDX = ^DUPEIDX;
+  DUPEIDX = packed record
+    EchoTag:  array[0..63] of Char;
+    Position: LongWord;
   end;
 
   { Outbound file entry (in-memory, not stored on disk) }
