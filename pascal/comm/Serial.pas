@@ -261,7 +261,7 @@ begin
   {$ELSE}
   if FSer <> nil then
   begin
-    if FSer.DCD then
+    if FSer.Carrier then
       Result := 1
     else
       Result := 0;

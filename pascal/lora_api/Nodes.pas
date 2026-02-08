@@ -72,8 +72,8 @@ type
     TicAka:         array[0..47] of Char;
     NewTicFilter:   array[0..127] of Char;
 
-    constructor Create; virtual;
-    constructor Create(pszDataPath: PChar); virtual;
+    constructor Create; overload;
+    constructor Create(pszDataPath: PChar); overload;
     destructor Destroy; override;
 
     procedure Add;
@@ -111,8 +111,8 @@ type
     Flags_: array[0..63] of Char;
     Cmd:    array[0..63] of Char;
 
-    constructor Create; virtual;
-    constructor Create(pszDataPath: PChar); virtual;
+    constructor Create; overload;
+    constructor Create(pszDataPath: PChar); overload;
     destructor Destroy; override;
 
     procedure Add;

@@ -33,26 +33,22 @@ begin
   WriteLn(' * Purging Users');
   Today := DateTimeToUnix(Now);
 
-  Usr := TUser.Create;
+  Usr := TUser.Create('users');
   try
-    if Usr.Open('users') then
-    begin
-      if Usr.First then
-      repeat
-        if (Level = 0) or (Usr.Level < Level) then
+    if Usr.First then
+    repeat
+      if (Level = 0) or (Usr.Level < Level) then
+      begin
+        DaysInactive := (Today - Usr.LastCall) div 86400;
+        if DaysInactive >= Days then
         begin
-          DaysInactive := (Today - Usr.LastCall) div 86400;
-          if DaysInactive >= Days then
-          begin
-            DT := UnixToDateTime(Usr.LastCall);
-            WriteLn(Format(' +-- %-30s Last: %s (%u days)',
-              [Usr.Name, FormatDateTime('ddd mmm dd hh:nn:ss yyyy', DT), DaysInactive]));
-            Usr.Delete;
-          end;
+          DT := UnixToDateTime(Usr.LastCall);
+          WriteLn(Format(' +-- %-30s Last: %s (%u days)',
+            [Usr.Name, FormatDateTime('ddd mmm dd hh:nn:ss yyyy', DT), DaysInactive]));
+          Usr.Delete;
         end;
-      until not Usr.Next;
-      Usr.Close;
-    end;
+      end;
+    until not Usr.Next;
   finally
     Usr.Free;
   end;
@@ -64,13 +60,9 @@ var
 begin
   WriteLn(' * Pack (Compressing) Users');
 
-  Usr := TUser.Create;
+  Usr := TUser.Create('users');
   try
-    if Usr.Open('users') then
-    begin
-      Usr.Pack;
-      Usr.Close;
-    end;
+    Usr.Pack;
   finally
     Usr.Free;
   end;

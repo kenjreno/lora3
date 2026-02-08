@@ -65,8 +65,8 @@ type
     ClockAdjustment: Byte;
     Completed:   Byte;
 
-    constructor Create; virtual;
-    constructor Create(pszDataFile: PChar); virtual;
+    constructor Create; overload;
+    constructor Create(pszDataFile: PChar); overload;
     destructor Destroy; override;
 
     procedure Add;

@@ -48,8 +48,8 @@ type
     DlCost:           Byte;
     FileList:         array[0..127] of Char;
 
-    constructor Create; virtual;
-    constructor Create(pszDataPath: PChar); virtual;
+    constructor Create; overload;
+    constructor Create(pszDataPath: PChar); overload;
     destructor Destroy; override;
 
     function  Add: Word;
@@ -97,8 +97,8 @@ type
     Passive:      Byte;
     Skip:         Byte;
 
-    constructor Create; virtual;
-    constructor Create(pszDataPath: PChar); virtual;
+    constructor Create; overload;
+    constructor Create(pszDataPath: PChar); overload;
     destructor Destroy; override;
 
     function  Add: Word;

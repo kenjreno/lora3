@@ -26,8 +26,8 @@ type
     Known:      Char;
     Protected_: Char;
 
-    constructor Create; virtual;
-    constructor Create(pszDataPath: PChar); virtual;
+    constructor Create; overload;
+    constructor Create(pszDataPath: PChar); overload;
     destructor Destroy; override;
 
     procedure Add;

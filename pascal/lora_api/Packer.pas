@@ -32,8 +32,8 @@ type
     Windows_:  Byte;
     Linux_:    Byte;
 
-    constructor Create; virtual;
-    constructor Create(pszDataPath: PChar); virtual;
+    constructor Create; overload;
+    constructor Create(pszDataPath: PChar); overload;
     destructor Destroy; override;
 
     function  Add: Word;

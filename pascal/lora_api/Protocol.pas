@@ -37,8 +37,8 @@ type
     SizePos:              Word;
     CpsPos:               Word;
 
-    constructor Create; virtual;
-    constructor Create(pszPath: PChar); virtual;
+    constructor Create; overload;
+    constructor Create(pszPath: PChar); overload;
     destructor Destroy; override;
 
     procedure Add;
