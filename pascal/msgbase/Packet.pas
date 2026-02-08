@@ -164,7 +164,7 @@ var
   AddedIntl, IsEchomail: Boolean;
   Temp: string;
   pszText: PChar;
-  pktIndex: PKTINDEX;
+  PIdx: PKTINDEX;
   NowDT: TDateTime;
   yr, mo, dy, hr, mn, sc, ms: Word;
   DateStr: string;
@@ -175,9 +175,9 @@ begin
   { Seek to end - 2 (before terminator) }
   fpStream.Position := fpStream.Size - 2;
 
-  FillChar(pktIndex, SizeOf(PKTINDEX), 0);
-  pktIndex.Number := TotalMsgs + 1;
-  pktIndex.Position := fpStream.Position;
+  FillChar(PIdx, SizeOf(PKTINDEX), 0);
+  PIdx.Number := TotalMsgs + 1;
+  PIdx.Position := fpStream.Position;
 
   FillChar(msgHdr, SizeOf(PKTMSGHDR), 0);
   msgHdr.Version := 2;
@@ -278,7 +278,7 @@ begin
   { Write message terminator + packet end }
   fpStream.Write(#0#0#0, 3);
 
-  Index.Add(@pktIndex, SizeOf(PKTINDEX));
+  Index.Add(@PIdx, SizeOf(PKTINDEX));
   Inc(TotalMsgs);
 end;
 
@@ -465,7 +465,7 @@ function TPacket.Open(const AName: string; doScan: Boolean): Boolean;
 var
   c: Byte;
   Position: Int64;
-  pktIndex: PKTINDEX;
+  PIdx: PKTINDEX;
   NowDT: TDateTime;
   yr, mo, dy, hr, mn, sc, ms: Word;
   i: Word;
@@ -586,8 +586,8 @@ begin
   if Result and (fpStream <> nil) and doScan then
   begin
     repeat
-      FillChar(pktIndex, SizeOf(PKTINDEX), 0);
-      pktIndex.Position := fpStream.Position;
+      FillChar(PIdx, SizeOf(PKTINDEX), 0);
+      PIdx.Position := fpStream.Position;
 
       FillChar(msgHdr, SizeOf(PKTMSGHDR), 0);
       if fpStream.Read(msgHdr, SizeOf(PKTMSGHDR)) < SizeOf(PKTMSGHDR) then
@@ -604,8 +604,8 @@ begin
         repeat c := 0; if fpStream.Read(c, 1) = 0 then c := 0; until (c = 0) or (fpStream.Position >= fpStream.Size);
 
         Inc(TotalMsgs);
-        pktIndex.Number := TotalMsgs;
-        Index.Add(@pktIndex, SizeOf(PKTINDEX));
+        PIdx.Number := TotalMsgs;
+        Index.Add(@PIdx, SizeOf(PKTINDEX));
       end
       else if msgHdr.Version <> 0 then
       begin

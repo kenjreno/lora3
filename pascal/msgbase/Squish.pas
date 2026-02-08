@@ -704,15 +704,14 @@ begin
     end
     else
     begin
-      for i := 0 to Integer(FSqBase.NumMsg) - 1 do
+      i := 0;
+      while i < Integer(FSqBase.NumMsg) do
       begin
         if (pFSqIdx[i].MsgId <> $FFFFFFFF) and (pFSqIdx[i].MsgId >= ulMsg) then
         begin
-          if pFSqIdx[i].MsgId = ulMsg then
-          begin
-            while (i < Integer(FSqBase.NumMsg)) and (pFSqIdx[i].MsgId = ulMsg) do
-              Inc(i);
-          end;
+          { Skip past duplicates of current message }
+          while (i < Integer(FSqBase.NumMsg)) and (pFSqIdx[i].MsgId = ulMsg) do
+            Inc(i);
           if i < Integer(FSqBase.NumMsg) then
           begin
             ulMsg := pFSqIdx[i].MsgId;
@@ -720,6 +719,7 @@ begin
           end;
           Break;
         end;
+        Inc(i);
       end;
     end;
   end;
@@ -939,10 +939,12 @@ begin
     end
     else
     begin
-      for i := Integer(FSqBase.NumMsg) - 1 downto 0 do
+      i := Integer(FSqBase.NumMsg) - 1;
+      while i >= 0 do
       begin
         if (pFSqIdx[i].MsgId <> $FFFFFFFF) and (pFSqIdx[i].MsgId <= ulMsg) then
         begin
+          { Skip past current message }
           if pFSqIdx[i].MsgId = ulMsg then
             Dec(i);
           if i >= 0 then
@@ -952,6 +954,7 @@ begin
           end;
           Break;
         end;
+        Dec(i);
       end;
     end;
   end;
