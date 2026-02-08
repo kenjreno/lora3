@@ -34,7 +34,7 @@ uses
   {$IFDEF MSDOS}
   Dos,
   {$ELSE}
-  Sockets, blcksock, synsock, synautil,
+  blcksock, synsock, synautil,
   {$ENDIF}
   Defs, ComBase;
 
@@ -315,7 +315,7 @@ begin
       StrPCopy(HostIP, LocalIP);
 
       { Parse IP into HostID (network byte order) }
-      HostID := StrToHostAddr(LocalIP).s_addr;
+      HostID := synsock.inet_addr(PChar(LocalIP));
 
       Result := 1;
     end;
@@ -351,12 +351,19 @@ begin
   HostID := $7F000001;
   { TODO: Watt-32 bind/listen implementation }
   {$ELSE}
-  { Get local host IP }
-  LocalIP := ResolveIPToName(LocalHostName);
-  if LocalIP = '' then
-    LocalIP := '127.0.0.1';
+  { Get local host IP via a temporary UDP socket trick }
+  with TUDPBlockSocket.Create do
+  try
+    CreateSocket;
+    Connect('8.8.8.8', '53');
+    LocalIP := GetLocalSinIP;
+    if (LocalIP = '') or (LocalIP = '0.0.0.0') then
+      LocalIP := '127.0.0.1';
+  finally
+    Free;
+  end;
   StrPCopy(HostIP, LocalIP);
-  HostID := StrToHostAddr(LocalIP).s_addr;
+  HostID := synsock.inet_addr(PChar(LocalIP));
 
   IsUDP := (usProtocol = PROTO_UDP);
 

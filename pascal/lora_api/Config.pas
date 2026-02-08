@@ -198,7 +198,7 @@ type
   private
     ConfigFile:  array[0..127] of Char;
     ChannelFile: array[0..127] of Char;
-    procedure Struct2Class(var Cfg: CONFIG_REC);
+    procedure Struct2Class(var Cfg: Struc299.CONFIG_REC);
   end;
 
 implementation
@@ -343,9 +343,9 @@ end;
 
 procedure TConfig.New_;
 var
-  Cfg: CONFIG_REC;
+  Cfg: Struc299.CONFIG_REC;
 begin
-  FillChar(Cfg, SizeOf(CONFIG_REC), 0);
+  FillChar(Cfg, SizeOf(Struc299.CONFIG_REC), 0);
   Struct2Class(Cfg);
 end;
 
@@ -372,7 +372,7 @@ begin
   DontCallIf[0] := #0;
 end;
 
-procedure TConfig.Struct2Class(var Cfg: CONFIG_REC);
+procedure TConfig.Struct2Class(var Cfg: Struc299.CONFIG_REC);
 begin
   StrCopy(Device, Cfg.Device);
   Speed := Cfg.Speed;
@@ -544,7 +544,7 @@ end;
 function TConfig.Reload: Word;
 var
   fs: TFileStream;
-  Cfg: CONFIG_REC;
+  Cfg: Struc299.CONFIG_REC;
   Ch: CHANNEL;
 begin
   Result := 0;
@@ -555,8 +555,8 @@ begin
     try
       fs := TFileStream.Create(StrPas(ConfigFile), fmOpenRead or fmShareDenyNone);
       try
-        FillChar(Cfg, SizeOf(CONFIG_REC), 0);
-        if fs.Read(Cfg, SizeOf(CONFIG_REC)) = SizeOf(CONFIG_REC) then
+        FillChar(Cfg, SizeOf(Struc299.CONFIG_REC), 0);
+        if fs.Read(Cfg, SizeOf(Struc299.CONFIG_REC)) = SizeOf(Struc299.CONFIG_REC) then
         begin
           Struct2Class(Cfg);
           Result := 1;
@@ -618,7 +618,7 @@ end;
 function TConfig.Save(pszConfig: PChar; pszChannel: PChar): Word;
 var
   fs: TFileStream;
-  Cfg: CONFIG_REC;
+  Cfg: Struc299.CONFIG_REC;
   Ch: CHANNEL;
   CfgName, ChName: String;
   Found: Boolean;
@@ -638,10 +638,10 @@ begin
   try
     fs := TFileStream.Create(CfgName, fmCreate);
     try
-      FillChar(Cfg, SizeOf(CONFIG_REC), 0);
+      FillChar(Cfg, SizeOf(Struc299.CONFIG_REC), 0);
       Result := 1;
 
-      Cfg.Version_ := CONFIG_REC_VERSION;
+      Cfg.Version_ := CONFIG_VERSION;
       Cfg.Speed := Speed;
       StrCopy(Cfg.Device, Device);
       StrCopy(Cfg.Initialize[0], Initialize[0]);
@@ -795,7 +795,7 @@ begin
       StrCopy(Cfg.NewTicPath, NewTicPath);
       Cfg.TextPasswords := TextPasswords;
 
-      fs.Write(Cfg, SizeOf(CONFIG_REC));
+      fs.Write(Cfg, SizeOf(Struc299.CONFIG_REC));
     finally
       fs.Free;
     end;
