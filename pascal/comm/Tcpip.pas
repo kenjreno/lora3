@@ -106,6 +106,31 @@ const
 
 implementation
 
+{$IFNDEF MSDOS}
+{ Convert dotted IP string to network-byte-order LongWord }
+function IPStrToLong(const S: String): LongWord;
+var
+  Parts: array[0..3] of Byte;
+  i, p, Start: Integer;
+begin
+  Result := 0;
+  p := 0;
+  Start := 1;
+  for i := 1 to Length(S) + 1 do
+  begin
+    if (i > Length(S)) or (S[i] = '.') then
+    begin
+      if p > 3 then Exit;
+      Parts[p] := StrToIntDef(Copy(S, Start, i - Start), 0);
+      Inc(p);
+      Start := i + 1;
+    end;
+  end;
+  if p = 4 then
+    Result := Parts[0] or (Parts[1] shl 8) or (Parts[2] shl 16) or (Parts[3] shl 24);
+end;
+{$ENDIF}
+
 {$IFDEF MSDOS}
 const
   PKT_DRVR_SIG: array[0..7] of Char = 'PKT DRVR';
@@ -315,7 +340,7 @@ begin
       StrPCopy(HostIP, LocalIP);
 
       { Parse IP into HostID (network byte order) }
-      HostID := synsock.inet_addr(PChar(LocalIP));
+      HostID := IPStrToLong(LocalIP);
 
       Result := 1;
     end;
@@ -363,7 +388,7 @@ begin
     Free;
   end;
   StrPCopy(HostIP, LocalIP);
-  HostID := synsock.inet_addr(PChar(LocalIP));
+  HostID := IPStrToLong(LocalIP);
 
   IsUDP := (usProtocol = PROTO_UDP);
 

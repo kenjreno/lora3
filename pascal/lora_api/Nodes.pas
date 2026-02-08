@@ -77,7 +77,7 @@ type
     destructor Destroy; override;
 
     procedure Add;
-    procedure AddNodelist(name, diff: PChar; zone: Word = 0);
+    procedure AddNodelist(name, diff: PChar; AZone: Word = 0);
     procedure Delete;
     procedure DeleteNodelist;
     function  First: Word;
@@ -771,13 +771,13 @@ begin
   end;
 end;
 
-procedure TNodes.AddNodelist(name, diff: PChar; zone: Word);
+procedure TNodes.AddNodelist(name, diff: PChar; AZone: Word);
 var
   data: NODELIST_REC;
 begin
   FillChar(data, SizeOf(NODELIST_REC), 0);
   data.Size := SizeOf(NODELIST_REC);
-  data.Zone := zone;
+  data.Zone := AZone;
   StrCopy(data.Name, name);
   StrCopy(data.Diff, diff);
   ListData.Add(@data, SizeOf(NODELIST_REC));
