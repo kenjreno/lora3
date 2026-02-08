@@ -79,6 +79,19 @@ implementation
 const
   ArcFlags: array[0..6] of String = ('.mo', '.tu', '.we', '.th', '.fr', '.sa', '.su');
 
+function GetFileSize(const AFileName: String): Int64;
+var
+  SR: TSearchRec;
+begin
+  if SysUtils.FindFirst(AFileName, faAnyFile, SR) = 0 then
+  begin
+    Result := SR.Size;
+    SysUtils.FindClose(SR);
+  end
+  else
+    Result := 0;
+end;
+
 function AdjustPath(const S: String): String;
 begin
   {$IFDEF UNIX}
@@ -360,7 +373,7 @@ begin
   end;
   Out.Status := Status;
 
-  if FFiles.Add(@Out, SizeOf(Out)) then
+  if FFiles.Add(@Out, SizeOf(Out)) <> 0 then
   begin
     if AddQueue(Out) then
     begin
@@ -374,7 +387,7 @@ end;
 function TOutbound.Add(AZone, ANet, ANode: Word; APoint: Word;
   const ADomain: String): Boolean;
 var
-  I, X: Integer;
+  I, X, J: Integer;
   FileName, Line, PFile: String;
   Flags: array[0..5] of Char;
   Out: OUTFILE;
@@ -418,12 +431,12 @@ begin
       else
         StrPCopy(Out.Name, Format('%4.4x%4.4x.%sut', [ANet, ANode, Flags[I]]));
       StrPCopy(Out.Complete, FileName);
-      FileSize := SysUtils.FileSize(FileName);
+      FileSize := GetFileSize(FileName);
       Out.Size := LongWord(FileSize);
       Out.MailPKT := 1;
       Out.DeleteAfter := 1;
       Out.Status := Flags[I];
-      if FFiles.Add(@Out, SizeOf(Out)) then
+      if FFiles.Add(@Out, SizeOf(Out)) <> 0 then
         if AddQueue(Out) then
         begin
           Inc(TotalSize, Out.Size);
@@ -476,7 +489,7 @@ begin
             StrPCopy(Out.Name, ExtractFileName(PFile));
 
           StrPCopy(Out.Complete, PFile);
-          FileSize := SysUtils.FileSize(PFile);
+          FileSize := GetFileSize(PFile);
           Out.Size := LongWord(FileSize);
 
           { Check if mail PKT or arcmail }
@@ -484,8 +497,8 @@ begin
             Out.MailPKT := 1
           else
           begin
-            for X := 0 to 6 do
-              if Pos(ArcFlags[X], LowerCase(StrPas(Out.Name))) > 0 then
+            for J := 0 to 6 do
+              if Pos(ArcFlags[J], LowerCase(StrPas(Out.Name))) > 0 then
               begin
                 Out.ArcMail := 1;
                 Break;
@@ -498,7 +511,7 @@ begin
             Out.TruncateAfter := 1;
 
           Out.Status := Flags[I];
-          if FFiles.Add(@Out, SizeOf(Out)) then
+          if FFiles.Add(@Out, SizeOf(Out)) <> 0 then
             if AddQueue(Out) then
             begin
               Inc(TotalSize, Out.Size);
@@ -523,7 +536,7 @@ begin
           StrPCopy(Out.Domain, ADomain);
         Out.Status := Flags[I];
         Out.Poll := 1;
-        if FFiles.Add(@Out, SizeOf(Out)) then
+        if FFiles.Add(@Out, SizeOf(Out)) <> 0 then
           if AddQueue(Out) then
           begin
             Inc(TotalSize, Out.Size);
@@ -557,11 +570,11 @@ begin
     else
       StrPCopy(Out.Name, Format('%4.4x%4.4x.req', [ANet, ANode]));
     StrPCopy(Out.Complete, FileName);
-    FileSize := SysUtils.FileSize(FileName);
+    FileSize := GetFileSize(FileName);
     Out.Size := LongWord(FileSize);
     Out.Request := 1;
     Out.DeleteAfter := 1;
-    if FFiles.Add(@Out, SizeOf(Out)) then
+    if FFiles.Add(@Out, SizeOf(Out)) <> 0 then
       if AddQueue(Out) then
       begin
         Inc(TotalSize, Out.Size);
@@ -578,7 +591,7 @@ var
   Out: OUTFILE;
   QPtr: PQUEUE;
   Ext: String;
-  I, X: Integer;
+  I, X, J: Integer;
   Flag: Char;
   Lines: TStringList;
   Line, PFile: String;
@@ -674,7 +687,7 @@ begin
 
                     StrPCopy(Out.Complete, PFile);
                     StrPCopy(Out.Name, ExtractFileName(PFile));
-                    FileSize := SysUtils.FileSize(PFile);
+                    FileSize := GetFileSize(PFile);
                     Out.Size := LongWord(FileSize);
 
                     Out.MailPKT := 0;
@@ -686,8 +699,8 @@ begin
                       Out.MailPKT := 1
                     else
                     begin
-                      for X := 0 to 6 do
-                        if Pos(ArcFlags[X], LowerCase(StrPas(Out.Name))) > 0 then
+                      for J := 0 to 6 do
+                        if Pos(ArcFlags[J], LowerCase(StrPas(Out.Name))) > 0 then
                         begin
                           Out.ArcMail := 1;
                           Break;
@@ -699,7 +712,7 @@ begin
                     else if Line[1] = '#' then
                       Out.TruncateAfter := 1;
 
-                    if FFiles.Add(@Out, SizeOf(Out)) then
+                    if FFiles.Add(@Out, SizeOf(Out)) <> 0 then
                       if AddQueue(Out) then
                       begin
                         Inc(TotalSize, Out.Size);
@@ -714,7 +727,7 @@ begin
                 if not Added then
                 begin
                   Out.Poll := 1;
-                  if FFiles.Add(@Out, SizeOf(Out)) then
+                  if FFiles.Add(@Out, SizeOf(Out)) <> 0 then
                     if AddQueue(Out) then
                     begin
                       Inc(TotalSize, Out.Size);
@@ -741,12 +754,12 @@ begin
                 StrPCopy(Out.Complete, AdjustPath(EntryPath));
                 StrPCopy(Out.Name, SR2.Name);
                 if FileExists(AdjustPath(EntryPath)) then
-                  Out.Size := LongWord(SysUtils.FileSize(AdjustPath(EntryPath)))
+                  Out.Size := LongWord(GetFileSize(AdjustPath(EntryPath)))
                 else
                   Out.Size := 0;
                 Out.DeleteAfter := 1;
                 Out.MailPKT := 1;
-                if FFiles.Add(@Out, SizeOf(Out)) then
+                if FFiles.Add(@Out, SizeOf(Out)) <> 0 then
                   if AddQueue(Out) then
                   begin
                     Inc(TotalSize, Out.Size);
@@ -772,12 +785,12 @@ begin
                 StrPCopy(Out.Complete, AdjustPath(EntryPath));
                 StrPCopy(Out.Name, SR2.Name);
                 if FileExists(AdjustPath(EntryPath)) then
-                  Out.Size := LongWord(SysUtils.FileSize(AdjustPath(EntryPath)))
+                  Out.Size := LongWord(GetFileSize(AdjustPath(EntryPath)))
                 else
                   Out.Size := 0;
                 Out.DeleteAfter := 1;
                 Out.Request := 1;
-                if FFiles.Add(@Out, SizeOf(Out)) then
+                if FFiles.Add(@Out, SizeOf(Out)) <> 0 then
                   if AddQueue(Out) then
                   begin
                     Inc(TotalSize, Out.Size);
@@ -879,7 +892,7 @@ begin
 
                             StrPCopy(Out.Complete, PFile);
                             StrPCopy(Out.Name, ExtractFileName(PFile));
-                            FileSize := SysUtils.FileSize(PFile);
+                            FileSize := GetFileSize(PFile);
                             Out.Size := LongWord(FileSize);
                             Out.MailPKT := 0;
                             Out.ArcMail := 0;
@@ -890,8 +903,8 @@ begin
                               Out.MailPKT := 1
                             else
                             begin
-                              for X := 0 to 6 do
-                                if Pos(ArcFlags[X], LowerCase(StrPas(Out.Name))) > 0 then
+                              for J := 0 to 6 do
+                                if Pos(ArcFlags[J], LowerCase(StrPas(Out.Name))) > 0 then
                                 begin
                                   Out.ArcMail := 1;
                                   Break;
@@ -903,7 +916,7 @@ begin
                             else if Line[1] = '#' then
                               Out.TruncateAfter := 1;
 
-                            if FFiles.Add(@Out, SizeOf(Out)) then
+                            if FFiles.Add(@Out, SizeOf(Out)) <> 0 then
                               if AddQueue(Out) then
                               begin
                                 Inc(TotalSize, Out.Size);
@@ -922,7 +935,7 @@ begin
                         if not Added then
                         begin
                           Out.Poll := 1;
-                          if FFiles.Add(@Out, SizeOf(Out)) then
+                          if FFiles.Add(@Out, SizeOf(Out)) <> 0 then
                             if AddQueue(Out) then
                             begin
                               Inc(TotalSize, Out.Size);
@@ -945,12 +958,12 @@ begin
                         StrPCopy(Out.Complete, AdjustPath(EntryPath));
                         StrPCopy(Out.Name, SR3.Name);
                         if FileExists(AdjustPath(EntryPath)) then
-                          Out.Size := LongWord(SysUtils.FileSize(AdjustPath(EntryPath)))
+                          Out.Size := LongWord(GetFileSize(AdjustPath(EntryPath)))
                         else
                           Out.Size := 0;
                         Out.DeleteAfter := 1;
                         Out.MailPKT := 1;
-                        if FFiles.Add(@Out, SizeOf(Out)) then
+                        if FFiles.Add(@Out, SizeOf(Out)) <> 0 then
                           if AddQueue(Out) then
                           begin
                             Inc(TotalSize, Out.Size);
@@ -970,12 +983,12 @@ begin
                         StrPCopy(Out.Complete, AdjustPath(EntryPath));
                         StrPCopy(Out.Name, SR3.Name);
                         if FileExists(AdjustPath(EntryPath)) then
-                          Out.Size := LongWord(SysUtils.FileSize(AdjustPath(EntryPath)))
+                          Out.Size := LongWord(GetFileSize(AdjustPath(EntryPath)))
                         else
                           Out.Size := 0;
                         Out.DeleteAfter := 1;
                         Out.Request := 1;
-                        if FFiles.Add(@Out, SizeOf(Out)) then
+                        if FFiles.Add(@Out, SizeOf(Out)) <> 0 then
                           if AddQueue(Out) then
                           begin
                             Inc(TotalSize, Out.Size);
@@ -1008,7 +1021,7 @@ var
 begin
   Addr := TAddress.Create;
   try
-    Addr.Parse(AAddress);
+    Addr.Parse(PChar(AAddress));
 
     Outb := ExcludeTrailingPathDelimiter(FPath);
 
@@ -1219,7 +1232,7 @@ var
 begin
   Addr := TAddress.Create;
   try
-    Addr.Parse(AAddress);
+    Addr.Parse(PChar(AAddress));
 
     FOutbound := FPath;
     if Addr.Zone <> DefaultZone then
@@ -1330,7 +1343,7 @@ var
 begin
   Addr := TAddress.Create;
   try
-    Addr.Parse(AAddress);
+    Addr.Parse(PChar(AAddress));
 
     FOutbound := FPath;
     if Addr.Zone <> DefaultZone then

@@ -36,7 +36,7 @@ type
     FJamHdr: JAMHDR;
 
     function OpenOrCreateFile(const FileName: string): TFileStream;
-    procedure MDateToUnix(const D: MDATE): LongWord;
+    function MDateToUnix(const D: MDATE): LongWord;
     procedure UnixToMDate(UnixTime: LongWord; var D: MDATE);
     function BuildAttributes: LongWord;
     procedure ParseAttributes(Attr: LongWord);
