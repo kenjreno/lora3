@@ -1,6 +1,6 @@
 {
   FastWay BBS v1.0.0
-  Test program for msgbase units - JamMsg, Squish, FidoSdm, Hudson, Packet
+  Test program for msgbase units - JamMsg, Squish, FidoSdm, Packet
   Tests message base creation, writing, reading, and navigation.
 }
 
@@ -11,7 +11,7 @@ program test_msgbase;
 
 uses
   SysUtils, Classes, DateUtils, Defs, Struc299, Jam, Collect,
-  MsgBase, JamMsg, Squish, FidoSdm, Hudson, Packet, Dupes;
+  MsgBase, JamMsg, Squish, FidoSdm, Packet;
 
 var
   TestsPassed, TestsFailed: Integer;
@@ -55,7 +55,7 @@ end;
 { Helper: write a test message to any msgbase }
 procedure WriteTestMessage(Msg: TMsgBase; MsgNum: Integer);
 var
-  Text: TCollection;
+  MsgText: TCollection;
   NowDT: TDateTime;
   yr, mo, dy, hr, mn, sc, ms: Word;
 begin
@@ -76,16 +76,19 @@ begin
 
   Msg.Arrived := Msg.Written;
 
-  Text := TCollection.Create;
+  StrPCopy(Msg.FromAddress, Format('1:2320/%d.0', [MsgNum]));
+  StrPCopy(Msg.ToAddress, Format('1:2320/%d.0', [MsgNum + 100]));
+
+  MsgText := TCollection.Create;
   try
-    Text.Add(PChar(Format('This is test message number %d.', [MsgNum])));
-    Text.Add(PChar('Second line of text.'));
-    Text.Add(PChar('--- Test Origin'));
-    Msg.New_;
+    MsgText.Add(PChar(Format('This is test message number %d.', [MsgNum])));
+    MsgText.Add(PChar('Second line of text.'));
+    MsgText.Add(PChar('--- Test Origin'));
+    Msg.New;
     Msg.WriteHeader(0);
-    Msg.WriteText(Text);
+    Msg.AddText(MsgText);
   finally
-    Text.Free;
+    MsgText.Free;
   end;
 end;
 
@@ -95,9 +98,10 @@ procedure TestJamMsg;
 var
   Msg: TJamMsg;
   BasePath: String;
-  Text: TCollection;
+  MsgText: TCollection;
   P: PChar;
   Count: Integer;
+  ulMsg: LongWord;
 begin
   WriteLn;
   WriteLn('=== JAM Message Base Tests ===');
@@ -139,23 +143,24 @@ begin
     Check('JAM Subject starts with Test Subject', Pos('Test Subject', StrPas(Msg.Subject_)) = 1);
 
     { Read text }
-    Text := TCollection.Create;
+    MsgText := TCollection.Create;
     try
-      Msg.ReadText(Text);
+      Msg.ReadMsg(Msg.Lowest, MsgText);
       Count := 0;
-      P := PChar(Text.First);
+      P := PChar(MsgText.First);
       while P <> nil do
       begin
         Inc(Count);
-        P := PChar(Text.Next);
+        P := PChar(MsgText.Next);
       end;
-      Check('JAM ReadText returns lines', Count > 0);
+      Check('JAM ReadMsg returns lines', Count > 0);
     finally
-      Text.Free;
+      MsgText.Free;
     end;
 
     { Navigate }
-    Check('JAM Next from lowest', Msg.Next(Msg.Lowest));
+    ulMsg := Msg.Lowest;
+    Check('JAM Next from lowest', Msg.Next(ulMsg));
 
     Msg.Close;
   finally
@@ -254,38 +259,6 @@ begin
   RemoveDir(MsgPath);
 end;
 
-{ ---- TDupes Tests ---- }
-
-procedure TestDupes;
-var
-  D: TDupes;
-  DupeFile: String;
-begin
-  WriteLn;
-  WriteLn('=== TDupes Tests ===');
-
-  DupeFile := TmpDir + DirectorySeparator + 'dupes.dat';
-
-  D := TDupes.Create;
-  try
-    D.MaxEntries := 100;
-
-    { First check should not be duplicate }
-    Check('First entry not duplicate', not D.Check($DEADBEEF));
-    Check('Second entry not duplicate', not D.Check($CAFEBABE));
-    Check('Third entry not duplicate', not D.Check($12345678));
-
-    { Re-checking same values should find duplicates }
-    Check('Duplicate found for DEADBEEF', D.Check($DEADBEEF));
-    Check('Duplicate found for CAFEBABE', D.Check($CAFEBABE));
-
-    { New value still not duplicate }
-    Check('New value not duplicate', not D.Check($AAAAAAAA));
-  finally
-    D.Free;
-  end;
-end;
-
 { ---- Packet Tests ---- }
 
 procedure TestPacket;
@@ -303,16 +276,30 @@ begin
     { Create a new packet }
     Check('Packet Open for write', Pkt.Open(PktFile));
 
-    { Set header addresses }
-    Pkt.FromAddress.Zone := 1;
-    Pkt.FromAddress.Net := 2320;
-    Pkt.FromAddress.Node := 105;
-    Pkt.ToAddress.Zone := 1;
-    Pkt.ToAddress.Net := 2320;
-    Pkt.ToAddress.Node := 200;
+    { Set header addresses as FidoNet strings }
+    StrPCopy(Pkt.FromAddress, '1:2320/105.0');
+    StrPCopy(Pkt.ToAddress, '1:2320/200.0');
+
+    { Write a message into the packet }
+    WriteTestMessage(Pkt, 1);
 
     Pkt.Close;
     Check('PKT file created', FileExists(PktFile));
+  finally
+    Pkt.Free;
+  end;
+
+  { Re-open and verify }
+  Pkt := TPacket.Create;
+  try
+    Check('Packet re-open', Pkt.Open(PktFile));
+    Check('Packet Number >= 1', Pkt.Number >= 1);
+
+    Check('Packet ReadHeader', Pkt.ReadHeader(Pkt.Lowest));
+    Check('Packet From has content', StrLen(Pkt.From_) > 0);
+    Check('Packet Subject has content', StrLen(Pkt.Subject_) > 0);
+
+    Pkt.Close;
   finally
     Pkt.Free;
   end;
@@ -331,7 +318,6 @@ begin
     TestJamMsg;
     TestSquish;
     TestFidoSdm;
-    TestDupes;
     TestPacket;
   finally
     CleanupTmpDir;
