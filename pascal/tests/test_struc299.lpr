@@ -88,7 +88,7 @@ begin
   { MESSAGE_REC - message area data }
   CheckSize('MESSAGE_REC', SizeOf(MESSAGE_REC), 512);
   { MSGINDEX - message area index }
-  CheckSize('MSGINDEX', SizeOf(MSGINDEX), 4);
+  CheckSize('INDEX', SizeOf(INDEX), 4);
   { MSGTAGS - last-read tags }
   CheckSize('MSGTAGS', SizeOf(MSGTAGS), 48);
   { MDATE - message date }
@@ -153,7 +153,7 @@ end;
 
 procedure TestFieldLayout;
 var
-  Addr: ADDR;
+  FAddr: ADDR;
   MAddr: MAILADDRESS;
   Pkt: PKT2HDR;
 begin
@@ -161,15 +161,15 @@ begin
   WriteLn('=== Field Layout Validation ===');
 
   { Verify ADDR field offsets by filling and checking }
-  FillChar(Addr, SizeOf(Addr), 0);
-  Addr.Zone := $1234;
-  Addr.Net := $5678;
-  Addr.Node := $9ABC;
-  Addr.Point := $DEF0;
-  Check('ADDR.Zone at offset 0', PWord(@Addr)^ = $1234);
-  Check('ADDR.Net at offset 2', PWord(PByte(@Addr) + 2)^ = $5678);
-  Check('ADDR.Node at offset 4', PWord(PByte(@Addr) + 4)^ = $9ABC);
-  Check('ADDR.Point at offset 6', PWord(PByte(@Addr) + 6)^ = $DEF0);
+  FillChar(FAddr, SizeOf(FAddr), 0);
+  FAddr.Zone := $1234;
+  FAddr.Net := $5678;
+  FAddr.Node := $9ABC;
+  FAddr.Point := $DEF0;
+  Check('ADDR.Zone at offset 0', PWord(@FAddr)^ = $1234);
+  Check('ADDR.Net at offset 2', PWord(PByte(@FAddr) + 2)^ = $5678);
+  Check('ADDR.Node at offset 4', PWord(PByte(@FAddr) + 4)^ = $9ABC);
+  Check('ADDR.Point at offset 6', PWord(PByte(@FAddr) + 6)^ = $DEF0);
 
   { Verify PKT2HDR first fields }
   FillChar(Pkt, SizeOf(Pkt), 0);
